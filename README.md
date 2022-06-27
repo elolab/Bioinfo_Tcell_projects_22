@@ -10,11 +10,11 @@ EMBL-EBI scRNA Bioinformatics T cell course 2022
 
 Description: Projects to develop during the 'Bioinformatics for T-Cell immunology' course (11-15/07/2022) at EMBL-EBI: https://www.ebi.ac.uk/training/events/bioinformatics-t-cell-immunology-2022/
 
-Website: https://antonioggsousa.github.io/EMBL_EBI_scRNA_bioinformatics_Tcell_course_2022
+Website: https://elolab.github.io/EMBL_EBI_scRNA_bioinformatics_Tcell_course_2022
 
 Author(s): António Sousa (e-mail: aggode@utu.fi)
 
-Date: 23/06/2022
+Date: 27/06/2022
 
 <br>
 
