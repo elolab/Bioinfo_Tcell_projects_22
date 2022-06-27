@@ -59,7 +59,7 @@ This repository hosts three standalone/independent projects:
    
       + _R markdown notebook_: `01_integration_arthritis_arAE_ICI.Rmd` 
       
-      + _vignette_: [01_integration_arthritis_arAE_ICI.html](https://elolab.github.io/EMBL_EBI_scRNA_bioinformatics_Tcell_course_2022/pages/01_integration_arthritis_arAE_ICI.html)
+      + _vignette_: [01_integration_arthritis_arAE_ICI.html](https://elolab.github.io/Bioinfo_Tcell_projects_22/pages/01_integration_arthritis_arAE_ICI.html)
       
       + _estimated computing time_: 01:34:55
       
@@ -77,7 +77,7 @@ This repository hosts three standalone/independent projects:
    
       + _R markdown notebook_: `02_clustering_seurat_vs_iloreg.Rmd` 
       
-      + _vignette_: [02_clustering_seurat_vs_iloreg.html](https://elolab.github.io/EMBL_EBI_scRNA_bioinformatics_Tcell_course_2022/pages/02_clustering_seurat_vs_iloreg.html)
+      + _vignette_: [02_clustering_seurat_vs_iloreg.html](https://elolab.github.io/Bioinfo_Tcell_projects_22/pages/02_clustering_seurat_vs_iloreg.html)
 
       + _estimated computing time_: 00:39:18
       
@@ -95,7 +95,7 @@ This repository hosts three standalone/independent projects:
    
       + _R markdown notebook_: `03_pseudobulks_dge_rots_cd4_act.Rmd` 
       
-      + _vignette_: [03_pseudobulks_dge_rots_cd4_act.html](https://elolab.github.io/EMBL_EBI_scRNA_bioinformatics_Tcell_course_2022/pages/03_pseudobulks_dge_rots_cd4_act.html)
+      + _vignette_: [03_pseudobulks_dge_rots_cd4_act.html](https://elolab.github.io/Bioinfo_Tcell_projects_22/pages/03_pseudobulks_dge_rots_cd4_act.html)
 
       + _estimated computing time_: 02:22:01
       
@@ -103,12 +103,12 @@ This repository hosts three standalone/independent projects:
       
 <br>
 
-The course material for these projects can be found in the following github repository (under the folder `projects`): [https://github.com/elolab/EMBL_EBI_scRNA_bioinformatics_Tcell_course_2022](https://github.com/elolab/EMBL_EBI_scRNA_bioinformatics_Tcell_course_2022)
+The course material for these projects can be found in the following github repository (under the folder `projects`): [https://github.com/elolab/Bioinfo_Tcell_projects_22](https://github.com/elolab/Bioinfo_Tcell_projects_22)
 
 Download the github repository by typing in the terminal: 
-```git clone https://github.com/elolab/EMBL_EBI_scRNA_bioinformatics_Tcell_course_2022.git``` 
+```git clone https://github.com/elolab/Bioinfo_Tcell_projects_22.git``` 
 
-or by clicking under the [Download ZIP](https://github.com/elolab/EMBL_EBI_scRNA_bioinformatics_Tcell_course_2022/archive/refs/heads/main.zip) icon (decompress the folder).
+or by clicking under the [Download ZIP](https://github.com/elolab/Bioinfo_Tcell_projects_22/archive/refs/heads/main.zip) icon (decompress the folder).
 
 The `README.md` markdown text file under the folder `projects` explains the directory structure. The **project notebooks** are under the folder `reports`. 
 The `conda` environment yaml file at `projects/workflow/envs/tools.yaml` describes the list of software packages and the respective versions required to reproduce the project notebooks. Such can be installed with `conda` (or `mamba`) by doing (from the `root` directory `projects` folder): `conda env create -f workflow/envs/tools.yaml` (you may need to add the tag `-name: course` to the beginning of the yaml file).  
