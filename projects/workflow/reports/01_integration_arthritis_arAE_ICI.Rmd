@@ -26,6 +26,7 @@ output:
 
 ```{r setup, include=FALSE}
 
+start_time = Sys.time()
 ## Set up configuration for R chunks
 
 knitr::opts_chunk$set(
@@ -56,6 +57,8 @@ library("aricode") # ARI index clt comp
 library("reticulate") # to work w/ python packages in R
 scanorama <- import('scanorama') # import the Scanorama python package
 source("scripts/helper_functions.R") # import functions adapted to automatize integration with scanorama
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -75,13 +78,14 @@ source("scripts/helper_functions.R") # import functions adapted to automatize in
 
 ### Download & Import Datasets 
 
-(_5-10 min)_
+_(5-10 min)_
 
 <br>
 
 
 ```{r download datasets}
 
+start_time = Sys.time()
 ## Download datasets
 
 # import table with datasets to download
@@ -151,6 +155,8 @@ names(metadata) <- gsub("_data_metadata.tsv.gz", "", basename(metadata)) # name 
 metadata <- lapply(setNames(metadata, names(metadata)), function(x) {
 			   read.table(x, header=TRUE, sep="\t", stringsAsFactors=FALSE)
 			       }) # import tables into a list
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -166,7 +172,7 @@ metadata <- lapply(setNames(metadata, names(metadata)), function(x) {
 
 ### Seurat object
 
-(_5 min)_
+_(5 min)_
 
 <br>
 
@@ -176,6 +182,7 @@ Look into the structure of the Seurat class object by runing the code below.
 
 ```{r seurat strc}
 
+start_time = Sys.time()
 # Seurat object structure
 str(seu)
 
@@ -206,6 +213,8 @@ Print below the gene expression of the first 10 genes across the first 10 cells 
 
 ## Inspect data
 seu@assays$RNA@counts[1:10,1:10]
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -233,7 +242,7 @@ It is 3.
 
 ### Metadata 
 
-(_5-10 min)_
+_(5-10 min)_
 
 <br>
 
@@ -241,6 +250,7 @@ Let's inspect below what the `@meta.data` slot contains (run the code).
 
 ```{r @meta.data}
 
+start_time = Sys.time()
 # Print the first 6 rows of '@meta.data'
 head(seu@meta.data)
 
@@ -323,6 +333,8 @@ seu@meta.data <- cbind(seu@meta.data, tmp)
 
 # Look how the updated Seurat meta.data looks like
 head(seu@meta.data)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -344,7 +356,7 @@ Now we're ready to start our analysis with `Seurat`!
 
 ### Viz
 
-(_5-10 min)_
+_(5-10 min)_
 
 <br>
 
@@ -365,6 +377,7 @@ The total no. of mt genes is: `r length(grep("^MT-", row.names(seu), value=TRUE)
 
 ```{r calculate percentage mt}
 
+start_time = Sys.time()
 ## Calculate percentage of mitochondrial genes by cell
 
 seu[["percent.mt"]] <- PercentageFeatureSet(seu, pattern = "^MT-") # add the 'percent.mt' to the 'meta.data' slot
@@ -439,6 +452,8 @@ dev.off()
 
 # Print
 print((qc_scatter1 + qc_scatter2))
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -456,7 +471,7 @@ The scatter plot of `nCount_RNA x percent.mt` shows no relationship/dependence a
 
 ### Filter cells 
 
-(_1 min)_
+_(1 min)_
 
 <br>
 
@@ -483,7 +498,7 @@ Low abundant genes need to be filtered when creating the `Seurat` object (`Creat
 
 ## Normalization
 
-(_3-5 min)_
+_(3-5 min)_
 
 <br>
 
@@ -493,11 +508,14 @@ Here, we'll focus on the most common used method: log-normalization (`NormalizeD
 
 ```{r log-normalization}
 
+start_time = Sys.time()
 ## Log-normalization
 seu <- NormalizeData(seu, normalization.method="LogNormalize", scale.factor=10000)
 
 # Inspect the result: first 10 genes x 10 cells
 seu@assays$RNA@data[1:10,1:10]
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -513,7 +531,7 @@ seu@assays$RNA@data[1:10,1:10]
 
 ## HVG
 
-(_3-5 min)_
+_(3-5 min)_
 
 <br>
 
@@ -523,6 +541,7 @@ We now that roughly some subsets of T cells can be classified in CD4+ or CD8+. L
 
 ```{r cd4 vs cd8}
 
+start_time = Sys.time()
 ## CD4+ vs CD8+
 FeatureScatter(seu, feature1="CD8A", feature2="CD4", group.by="cell.types.orig")
 
@@ -562,6 +581,8 @@ dev.off()
 
 # Print
 print((hvg_plot1 + hvg_plot2))
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -588,7 +609,7 @@ Cytokines such as `CCL2` or `CCL8`.
 
 ## Scaling
 
-(_3-5 min)_
+_(3-5 min)_
 
 <br>
 
@@ -598,11 +619,14 @@ Let's scaled our scRNA-seq dataset.
 
 ```{r scaling}
 
+start_time = Sys.time()
 ## Scaling
 seu <- ScaleData(seu)
 
 ## Print the first 10 rows x 10 cols
 seu@assays$RNA@scale.data[1:10,1:10]
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -625,7 +649,7 @@ During scaling it is possible to regress out undesiderable variables, such as `n
 
 ### PCA
 
-(_5-10 min)_
+_(5-10 min)_
 
 <br>
 
@@ -635,6 +659,7 @@ Run it below (it will use the scaled data obtained above).
 
 ```{r pca}
 
+start_time = Sys.time()
 ## PCA
 seu <- RunPCA(seu)
 
@@ -673,6 +698,8 @@ dev.off()
 
 # Print
 print(elbow_plot)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -696,7 +723,7 @@ Let's use 30. Although other values would be equally valid such as 10, 20 or eve
 
 ### tSNE & UMAP
 
-(_5-10 min)_
+_(5-10 min)_
 
 <br>
 
@@ -706,6 +733,7 @@ Run tSNE and UMAP below.
 
 ```{r tsne & umap}
 
+start_time = Sys.time()
 ## tSNE & UMAP
 
 # tSNE
@@ -742,6 +770,8 @@ dev.off()
 # Print
 cowplot::plot_grid(plotlist=dr_plots[["tsne"]], ncol=3)
 cowplot::plot_grid(plotlist=dr_plots[["umap"]], ncol=3)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -777,6 +807,7 @@ The second step depends on the `resolution` value given. Here, we'll use a resol
 
 ```{r clustering - unintegrated}
 
+start_time = Sys.time()
 ## Clustering: unintegrated data
 seu <- FindNeighbors(seu, dims=1:30)
 seu <- FindClusters(seu, resolution=0.5)
@@ -809,6 +840,8 @@ dev.off()
 # Print
 cowplot::plot_grid(plotlist=dr_clts_plots[["tsne"]], ncol=3)
 cowplot::plot_grid(plotlist=dr_clts_plots[["umap"]], ncol=3)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -854,6 +887,7 @@ The authors used the software `Harmony` to integrate the data and these batches 
 
 ```{r integration - seurat rpca}
 
+start_time = Sys.time()
 ## Integration - Seurat fast RPCA
 
 # Split Seurat object by batch samples to perform integration
@@ -954,6 +988,8 @@ dev.off()
 # Print
 cowplot::plot_grid(plotlist=dr_clts_seu_plots[["tsne"]], ncol=3)
 cowplot::plot_grid(plotlist=dr_clts_seu_plots[["umap"]], ncol=3)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -983,6 +1019,7 @@ We're using the `corrected joint embedding` for downstream analyses, such as DR 
 
 ```{r integration - scanorama}
 
+start_time = Sys.time()
 ## Integration: Scanorama
 # Run integration
 set.seed(1024)
@@ -1023,6 +1060,8 @@ dev.off()
 # Print
 cowplot::plot_grid(plotlist=dr_int_sca_plots[["tsne"]], ncol=3)
 cowplot::plot_grid(plotlist=dr_int_sca_plots[["umap"]], ncol=3)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -1050,6 +1089,7 @@ Start by plotting the dimensional reduction plots below:
 
 ```{r clustering comparison - dr plots, fig.width=24, fig.height=24}
 
+start_time = Sys.time()
 ## Clustering comparison: DR plots
 pdf(paste(res_dirs[1], "clts_comp_all_tsne_plots.pdf", sep="/"), width=24, height=24)
 cowplot::plot_grid(plotlist=list(dr_clts_plots[["tsne"]][[1]], dr_clts_plots[["tsne"]][[2]], dr_clts_plots[["tsne"]][[3]],
@@ -1147,6 +1187,8 @@ if(!dir.exists(res_objs)) dir.create(res_objs, recursive=TRUE)
 saveRDS(seu, paste(res_objs, "seu.rds", sep="/"))
 saveRDS(int, paste(res_objs, "int.rds", sep="/"))
 saveRDS(int_sca, paste(res_objs, "int_sca.rds", sep="/"))
+end_time = Sys.time()
+end_time - start_time
 
 ```
 

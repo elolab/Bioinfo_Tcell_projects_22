@@ -108,7 +108,7 @@ The course material for these projects can be found in the following github repo
 Download the github repository by typing in the terminal: 
 ```git clone https://github.com/elolab/Bioinfo_Tcell_projects_22.git``` 
 
-or by clicking under the [Download ZIP](https://github.com/elolab/Bioinfo_Tcell_projects_22/archive/refs/heads/main.zip) icon (decompress the folder).
+or by clicking under the [Download ZIP](https://github.com/elolab/Bioinfo_Tcell_projects_22/archive/refs/heads/master.zip) icon (decompress the folder).
 
 The `README.md` markdown text file under the folder `projects` explains the directory structure. The **project notebooks** are under the folder `reports`. 
 The `conda` environment yaml file at `projects/workflow/envs/tools.yaml` describes the list of software packages and the respective versions required to reproduce the project notebooks. Such can be installed with `conda` (or `mamba`) by doing (from the `root` directory `projects` folder): `conda env create -f workflow/envs/tools.yaml` (you may need to add the tag `-name: course` to the beginning of the yaml file).  

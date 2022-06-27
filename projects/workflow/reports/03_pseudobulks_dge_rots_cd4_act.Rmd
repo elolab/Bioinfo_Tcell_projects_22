@@ -26,6 +26,7 @@ output:
 
 ```{r setup, include=FALSE}
 
+start_time = Sys.time()
 ## Set up configuration for R chunks
 
 knitr::opts_chunk$set(
@@ -53,6 +54,8 @@ library("dplyr") # data wrangling
 library("ggplot2") # plotting
 library("Seurat") # scRNA-seq analysis
 library("ROTS") # differential gene expression analysis
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -96,6 +99,7 @@ Below we'll import the table with the information to download.
 
 ```{r download datasets}
 
+start_time = Sys.time()
 ## Download datasets
 
 # import table with datasets to download
@@ -203,6 +207,8 @@ stopifnot(all(row.names(sc.meta)==colnames(data10x)))
 seu <- CreateSeuratObject(counts=data10x[common.genes,], 
 			  meta.data=sc.meta) # convert gene exp. sparse matrix into Seurat class object
 stopifnot(all(row.names(seu)==row.names(bulk$counts)))
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -246,6 +252,7 @@ The `bulk$meta` metadata comprises the following (self-explanatory) fields: `sam
 
 ```{r bulk meta}
 
+start_time = Sys.time()
 ## Print bulk-RNA-seq metadata
 bulk$meta[1:5,]
 
@@ -267,6 +274,8 @@ The `seu@meta.data` metadata comprises the following (self-explanatory) fields: 
 seu@meta.data[1:5,]
 
 table(seu@meta.data$cytokine.condition, seu@meta.data$cell.type)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -300,6 +309,7 @@ Get acquainted below with the two different types of data: **bulk**- and **singl
 
 ```{r bulk count dist}
 
+start_time = Sys.time()
 ## Distribution of bulk-RNA
 bulk$counts[1:20,1:10]
 
@@ -358,6 +368,8 @@ dev.off()
 
 # Print
 print(sc_dist_plot)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -399,10 +411,13 @@ Run the code below to apply `edgeR` normalization to the `bulk$counts`. The resu
 
 ```{r bulk norm}
 
+start_time = Sys.time()
 ## Normalization
 bulk$DGEList <- edgeR::DGEList(counts=bulk$counts, remove.zeros=T) # create object for edgeR
 bulk$DGEList <- edgeR::calcNormFactors(bulk$DGEList) # calculate normalizing factors
 bulk$logcpm <- edgeR::cpm(bulk$DGEList, normalized.lib.sizes=T, prior.count=1, log=T) # normalize
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -430,8 +445,11 @@ Run the code below to log-normalize the counts in the `seu` `Seurat` object.
 
 ```{r sc norm}
 
+start_time = Sys.time()
 ## Normalization
 seu <- NormalizeData(seu, normalization.method="LogNormalize", scale.factor=10000)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 <br>
@@ -464,6 +482,7 @@ Run the code below to perform a PCA with the bulk data. We'll try to highlight t
 
 ```{r bulk pca}
 
+start_time = Sys.time()
 ## PCA
 bulk$pca <- prcomp(t(bulk$logcpm), center=TRUE, scale.=TRUE)
 
@@ -485,6 +504,8 @@ dev.off()
 
 # Print
 print(bulk_pca)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -508,6 +529,7 @@ Run the code below to perform a PCA with the single-cell data. We'll try to high
 
 ```{r sc pca}
 
+start_time = Sys.time()
 ## PCA
 set.seed(1024)
 # HVG
@@ -530,6 +552,8 @@ dev.off()
 
 # Print
 print(sc_pca)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -603,6 +627,7 @@ Run the `R` chunk code below to perform bulk DGE with `ROTS`. First we'll select
 
 ```{r bulk dge}
 
+start_time = Sys.time()
 ## DGE
 # Samples per condition 
 cell.types <- c("CD4_Memory", "CD4_Naive")
@@ -639,6 +664,8 @@ for (cell in cell.types) {
 		cat("The no. of significant genes (FDR<0.05) found was:", sum(dge.res$FDR<0.05), "\n")
 	}
 }
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -683,6 +710,7 @@ Run the `R` chunk code below to perform single-cell DGE with `Wilcox`. First we'
 
 ```{r sc dge}
 
+start_time = Sys.time()
 # DGE: Wilcox
 seu@meta.data[["pair_comp"]] <- paste(seu@meta.data$cell.type, seu@meta.data$cytokine.condition, sep="_")
 Idents(seu) <- "pair_comp"
@@ -703,6 +731,8 @@ for (cell in cell.types) {
 		cat("The no. of significant genes (FDR<0.05) found was:", sum(dge.sc[[cell]][[comp]]$p_val_adj<0.05), "\n")
 	}
 }
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -728,6 +758,7 @@ First, we need to aggregate **single-cell** data into **pseudobulks** by summing
 
 ```{r ps dge}
 
+start_time = Sys.time()
 ## Pseudobulks
 seu@meta.data[["pair_comp_rep"]] <- paste(seu@meta.data[["pair_comp"]], seu@meta.data[["donor.id"]], sep="_")
 sce <- as.SingleCellExperiment(seu)
@@ -762,6 +793,8 @@ for (cell in cell.types) {
 		cat("The no. of significant genes (FDR<0.05) found was:", sum(dge.res$FDR<0.05), "\n")
 	}
 }
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -805,6 +838,7 @@ There are several ways to compare these results. Here we'll focus in the metric 
 
 ```{r aucc}
 
+start_time = Sys.time()
 ## Run AUCC 
 
 ## List of DEGs ordered by increasing significance & log2FC per cell per pairwise comparison
@@ -883,6 +917,8 @@ dev.off()
 
 # Print
 print(aucc_plot)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -944,6 +980,7 @@ Run the `R` chunk code below.
 
 ```{r func enrich}
 
+start_time = Sys.time()
 ## Functional enrichment analysis
 
 ## DGE list
@@ -1044,6 +1081,8 @@ saveRDS(seu, paste(dirs2save[3], "seu.rds", sep="/"))
 saveRDS(ps, paste(dirs2save[3], "ps.rds", sep="/"))
 saveRDS(bulk, paste(dirs2save[3], "bulk.rds", sep="/"))
 saveRDS(func.list, paste(dirs2save[3], "func.list.rds", sep="/"))
+end_time = Sys.time()
+end_time - start_time
 
 ```
 

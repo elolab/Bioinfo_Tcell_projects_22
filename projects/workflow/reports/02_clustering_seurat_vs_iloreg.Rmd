@@ -26,6 +26,7 @@ output:
 
 ```{r setup, include=FALSE}
 
+start_time = Sys.time()
 ## Set up configuration for R chunks
 
 knitr::opts_chunk$set(
@@ -52,6 +53,8 @@ library("dplyr")
 library("ggplot2")
 library("SingleCellExperiment")
 library("ILoReg")
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -98,6 +101,7 @@ Below we'll import the table with the information to download.
 
 ```{r data to download}
 
+start_time = Sys.time()
 ## Download datasets
 
 # import table with datasets to download
@@ -160,6 +164,8 @@ cell.annot <- read.table(gzfile(paste(down_dir, "GSE115978_cell.annotations.csv.
 stopifnot(all(colnames(counts)==row.names(cell.annot)))
 immune.cells <- row.names(cell.annot[!(cell.annot$cell.types %in% c("?", "Mal")),]) # remove malignant cells and unknown
 seu <- CreateSeuratObject(counts[,immune.cells], meta.data=cell.annot[immune.cells,])
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -200,8 +206,11 @@ Let's inspect the metadata (save in the `Seurat` object at `seu@meta.data`).
 
 ```{r print metadata}
 
+start_time = Sys.time()
 ## Print the first few rows of the metadata
 seu@meta.data[1:10,] # first 10 rows & all cols
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -248,6 +257,7 @@ To explore how some technical variables (e.g., `samples`, `cell.types`, `treatme
 
 ```{r dr - variance}
 
+start_time = Sys.time()
 ## Dimensional reduction: workflow
 set.seed(1024) # keep reproducibility
 seu <- NormalizeData(seu, normalization.method="LogNormalize", 
@@ -298,6 +308,8 @@ dev.off()
 
 # Print
 cowplot::plot_grid(plotlist=qc_dr, ncol=2)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -368,6 +380,7 @@ Run the `R` chunk code below to perform clustering and visualize the clusters th
 
 ```{r clustering - seurat, fig.width=18, fig.height=6}
 
+start_time = Sys.time()
 # Cluster the data w/ Seurat
 set.seed(1024)
 seu <- FindNeighbors(seu, reduction="pca", dims=1:15)
@@ -381,6 +394,8 @@ dev.off()
 
 # Print
 cowplot::plot_grid(plotlist=clts_seurat, ncol=3)
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -455,6 +470,7 @@ Run the `R` chunk code below.
 
 ```{r clustering - iloreg}
 
+start_time = Sys.time()
 ## Clustering: ILoReg 
 iloreg_params <- list(icp_k=15, icp_d=0.3, icp_r=5, 
 		      icp_c=0.3, icp_l=50, icp_threads=10,
@@ -560,6 +576,8 @@ networkD3::saveNetwork(snk.plot, paste(dirs2save[1], "cluster_comparison_seurat_
 
 # Plot it 
 snk.plot
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -599,6 +617,7 @@ This data set do not contain cell type annotations. Therefore, we'll use the rec
 
 ```{r export h5ad}
 
+start_time = Sys.time()
 # Install SeuratDisk if not available
 # Install packages 
 if ( ! ("hdf5r" %in% installed.packages()) ) devtools::install_github("hhoeflin/hdf5r") 
@@ -693,6 +712,8 @@ cowplot::plot_grid(DimPlot(seu),
 		   scater::plotReducedDim(sce, dimred="UMAP", colour_by="new.predicted_labels"),
 		   scater::plotUMAP(sce, colour_by="majority_voting"), 
 		   ncol=3,  rel_widths= c(0.75, 1.25, 1))
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
@@ -722,6 +743,7 @@ Below some markers related with **exhaustion** ("PDCD1", "CTLA4", "CCL3", "CXCR5
 
 ```{r exhausted t cells, fig.width=12, fig.height=16}
 
+start_time = Sys.time()
 ## exhausted T cells
 
 ## Scale the whole data - it might be usefull for some visualizations
@@ -752,6 +774,8 @@ dev.off()
 ## Save objects
 saveRDS(seu, paste(dirs2save[3], "seu.rds", sep="/"))
 saveRDS(sce, paste(dirs2save[3], "int.rds", sep="/"))
+end_time = Sys.time()
+end_time - start_time
 
 ```
 
