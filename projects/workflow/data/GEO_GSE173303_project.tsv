@@ -1,0 +1,6 @@
+filename	description	ftp_url
+GSE173303_barcodes.tsv.gz	table of barcodes	https://ftp.ncbi.nlm.nih.gov/geo/series/GSE173nnn/GSE173303/suppl/GSE173303%5Fbarcodes%2Etsv%2Egz
+GSE173303_features.tsv.gz	table of genes	https://ftp.ncbi.nlm.nih.gov/geo/series/GSE173nnn/GSE173303/suppl/GSE173303%5Ffeatures%2Etsv%2Egz
+GSE173303_matrix.mtx.gz	gene expression data	https://ftp.ncbi.nlm.nih.gov/geo/series/GSE173nnn/GSE173303/suppl/GSE173303%5Fmatrix%2Emtx%2Egz
+GSE173303_subT_data_metadata.tsv.gz	cell metadata for sub T cells	https://ftp.ncbi.nlm.nih.gov/geo/series/GSE173nnn/GSE173303/suppl/GSE173303%5FsubT%5Fdata%5Fmetadata%2Etsv%2Egz
+GSE173303_whole_data_metadata.tsv.gz	cell metadata for all	https://ftp.ncbi.nlm.nih.gov/geo/series/GSE173nnn/GSE173303/suppl/GSE173303%5Fwhole%5Fdata%5Fmetadata%2Etsv%2Egz

@@ -1,0 +1,63 @@
+# check minimum requirement version
+from snakemake.utils import min_version
+
+min_version("6.9.0") #current 6.9.0
+
+# Import config file
+#configfile: "config/config.yaml"
+
+# Create report 
+#report: "reports/workflow.rst"
+
+# Use container - not possible with: 
+# singularity version 3.8.7-1.el7 | conda 4.11.0 | snakemake 6.9.0 on the server: (Error: mamba not found) 
+#container: "docker://continuumio/miniconda3"
+
+rule integration: 
+	message: """
+		 Run Rmd notebook: '01_integration_arthritis_arAE_ICI.Rmd'
+
+		 input metadata: {input}
+		 output html report: {output}  
+		 """
+	input: "data/GEO_GSE173303_project.tsv"
+	output: "reports/01_integration_arthritis_arAE_ICI.html"
+	log: "logs/01_integration_arthritis_arAE_ICI.log"
+	conda: "envs/tools.yaml"
+	resources: cpus=5, 
+		   mem_mb=64000,
+		   time_min=180
+	script: "reports/01_integration_arthritis_arAE_ICI.Rmd"
+
+rule clustering: 
+	message: """
+		 Run Rmd notebook: '02_clustering_seurat_vs_iloreg.Rmd'
+
+		 input metadata: {input}
+		 output html report: {output}  
+		 """
+	input: "data/GEO_GSE115978_project.tsv"
+	output: "reports/02_clustering_seurat_vs_iloreg.html"
+	log: "logs/02_clustering_seurat_vs_iloreg.log"
+	conda: "envs/tools.yaml"
+	resources: cpus=12, 
+		   mem_mb=64000,
+		   time_min=720
+	script: "reports/02_clustering_seurat_vs_iloreg.Rmd"
+
+rule dge: 
+	message: """
+		 Run Rmd notebook: '03_pseudobulks_dge_rots_cd4_act.Rmd'
+
+		 input metadata: {input}
+		 output html report: {output}  
+		 """
+	input: "data/CanoGamez_et_al_2020_pub.tsv"
+	output: "reports/03_pseudobulks_dge_rots_cd4_act.html"
+	log: "logs/03_pseudobulks_dge_rots_cd4_act.log"
+	conda: "envs/tools.yaml"
+	resources: cpus=5, 
+		   mem_mb=64000,
+		   time_min=720
+	script: "reports/03_pseudobulks_dge_rots_cd4_act.Rmd"
+

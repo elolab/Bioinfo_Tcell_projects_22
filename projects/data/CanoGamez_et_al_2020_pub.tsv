@@ -1,0 +1,7 @@
+filename	description	ftp_url
+NCOMMS-19-7936188_bulk_RNAseq_metadata.txt	bulk metadata	https://storage.googleapis.com/otar040-cytoimmunogenomics/publication-project-data/RNAseq/NCOMMS-19-7936188_bulk_RNAseq_metadata.txt
+NCOMMS-19-7936188_bulk_RNAseq_raw_counts.txt	bulk raw counts	https://storage.googleapis.com/otar040-cytoimmunogenomics/publication-project-data/RNAseq/NCOMMS-19-7936188_bulk_RNAseq_raw_counts.txt
+NCOMMS-19-7936188_metadata.txt	single-cell metadata	https://storage.googleapis.com/otar040-cytoimmunogenomics/publication-project-data/scRNAseq/NCOMMS-19-7936188_metadata.txt
+NCOMMS-19-7936188_scRNAseq_barcodes.tsv	10X single-cell barcodes	https://storage.googleapis.com/otar040-cytoimmunogenomics/publication-project-data/scRNAseq/NCOMMS-19-7936188_scRNAseq_barcodes.tsv
+NCOMMS-19-7936188_scRNAseq_genes.tsv	10X single-cell genes	https://storage.googleapis.com/otar040-cytoimmunogenomics/publication-project-data/scRNAseq/NCOMMS-19-7936188_scRNAseq_genes.tsv
+NCOMMS-19-7936188_scRNAseq_raw_UMIs.mtx	10X single-cell raw UMIs	https://storage.googleapis.com/otar040-cytoimmunogenomics/publication-project-data/scRNAseq/NCOMMS-19-7936188_scRNAseq_raw_UMIs.mtx

@@ -1,0 +1,10 @@
+projects/results
+projects/workflow/results
+projects/workflow/logs
+projects/workflow/smk_logs
+projects/workflow/slurm/logs
+projects/workflow/.snakemake
+projects/reports/01_integration_arthritis_arAE_ICI.html
+projects/workflow/reports/02_clustering_seurat_vs_iloreg.html
+projects/workflow/reports/03_pseudobulks_dge_rots_cd4_act.html
+

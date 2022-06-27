@@ -1,0 +1,1080 @@
+---
+title: 'DGE: CD4+ T cell resting vs activation (sc vs pseudobulks)'
+author: "António Sousa (e-mail: <aggode@utu.fi>)"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output: 
+   html_document:
+      toc: true 
+      toc_float: true
+      theme: united
+      code_folding: hide
+---
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+# Notebook
+
+<br>
+
+```{r setup, include=FALSE}
+
+## Set up configuration for R chunks
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	fig.align = "center",
+	message = FALSE,
+	warning = FALSE
+)
+if ( ! "klippy" %in% row.names(installed.packages()) ) remotes::install_github("rlesur/klippy")
+```
+
+```{r klippy, echo=FALSE}
+
+## Configure the layout of icon to copy to clipboard the R chunk codes
+
+klippy::klippy(position = c('top', 'right'))
+
+```
+
+```{r packages, message=FALSE, warning=FALSE}
+
+## Import packages
+library("tidyr") # tidy data
+library("dplyr") # data wrangling
+library("ggplot2") # plotting
+library("Seurat") # scRNA-seq analysis
+library("ROTS") # differential gene expression analysis
+
+```
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+## Data 
+
+_(2-5 min)_
+
+<br>
+
+For this project we'll use the data publicly available at [www.opentargets.org](https://www.opentargets.org/projects/effectorness) published by [Cano-Gamez et al., 2020](https://www.nature.com/articles/s41467-020-15543-y). The data comprises bulk- and single-cell RNA data from human naïve and memory CD4+ T cells upon TCR and cytokine stimulation. Then the authors sequence these cells 16h before proliferation and after 5 days when cells acquire an effector phenotype. The differentiated cell types are: Th0, Th1, Th2, Th17, iTreg, IFNβ (apart from the resting state). We'll only focus in comparing cells sequenced at the 5th day that are common to bulk- and single-cell data: Th0, Th2, Th17 and iTreg. 
+
+Read more about it in the _Methods_ section [Single-cell RNA-sequencing](https://www.nature.com/articles/s41467-020-15543-y#Sec11). 
+
+Hopefully, the authors kindly provided the data and code used to produce the analyses in the publication: 
+ 
+   + **data**: [www.opentargets.org](https://www.opentargets.org/projects/effectorness)
+
+   + **code**: [GitHub](https://github.com/eddiecg/T-cell-effectorness) repository 
+
+<br>
+
+<br>
+
+### Download & Import Datasets 
+
+_(5-10 min)_
+
+<br>
+
+Below we'll import the table with the information to download. 
+
+```{r download datasets}
+
+## Download datasets
+
+# import table with datasets to download
+data2download <- read.table("../data/CanoGamez_et_al_2020_pub.tsv", 
+			    sep="\t", header=TRUE)
+
+```
+
+Check below the content of the table imported. 
+
+```{r print tbl, message=FALSE, warning=FALSE}
+
+# print table 
+knitr::kable(data2download)
+
+```
+
+<br>
+
+Now we'll download the metadata, bulk- and single-cell-RNA gene expression data from the *opentargets* website. The tables will be imported as `data.frame`s with the exception of the 10X single-cell gene expression data that will be imported as a `sparse` matrix with the `Seurat` function `Read10X()` (it searches for three files: `matrix.mtx`, `genes.tsv`, `barcodes.tsv`). We will provide the single-cell data to the function `CreateSeuratObject()` to convert this data into a `Seurat` class object ([read more about it](https://github.com/satijalab/seurat/wiki/Seurat)).  
+
+The six files that were are downloading are: 
+
+   + `NCOMMS-19-7936188_bulk_RNAseq_metadata.txt`: bulk metadata
+
+   + `NCOMMS-19-7936188_bulk_RNAseq_raw_counts.txt`: bulk raw counts of human CD4+ T (bulk) cells
+   
+   + `NCOMMS-19-7936188_metadata.txt`: single-cell metadata
+   
+   + 10X single-cell gene expression data:
+   
+      + `NCOMMS-19-7936188_scRNAseq_raw_UMIs` (renamed to `matrix.mtx`): UMI raw gene expression of human CD4+ T (single) cells
+      
+      + `NCOMMS-19-7936188_scRNAseq_genes.tsv` (renamed to `genes.tsv`): gene names
+      
+      + `NCOMMS-19-7936188_scRNAseq_barcodes.tsv` (renamed to `barcodes.tsv`): cell barcodes
+   
+<br>
+
+For the bulk gene expression data, the data is provided with _ensembl gene ids_, whereas the single-cell gene expression data has _gene names_. Thus we have to convert _ensembl gene ids_ into _gene names_, such as the conversion of the _ensembl gene id_ `ENSG00000010610` to the respective _gene name_ `CD4`. For this purpose, we'll use the `biomaRt` functions: `useEnsembl()` and `getBM()` (see [vignette](https://bioconductor.org/packages/release/bioc/vignettes/biomaRt/inst/doc/accessing_ensembl.html) to know more). 
+
+Finally, since we are interested in assessing the accuracy of differential gene expression when applied to **single-cell-RNA-seq** data using as the 'ground-truth' the **bulk-RNA-seq** data, we'll keep only genes shared among single-cell- and bulk-RNA data sets.  
+
+After running the `R` chunk code below, you'll end up with two main `objects` (i.e., data in `R`) called: `seu` (scRNA-seq data - `Seurat` class) and `bulk` (bulk-RNA-seq data - `list` class with two `data.frames` named `counts` and `meta` - you can access them by doing `bulk$counts` and `bulk$meta`, respectively). 
+
+```{r download & import data}
+
+## Download & import data
+
+# create directory to save files
+down_dir <- "../data/CanoGamez_et_al_2020" # directory to save datasets 
+if (!dir.exists(down_dir)) dir.create(down_dir, recursive=TRUE) # create folder if doesn't exist 
+
+# loop over the table rows & download each dataset
+for (f in 1:nrow(data2download)) {
+	down_filename <- data2download[f,"filename"]
+	down_filepath <- paste(down_dir, gsub("NCOMMS-19-7936188_scRNAseq_", "", down_filename), 
+			       sep="/")# download file to: '../data/GSE173303'
+	if (grepl("raw_UMIs.mtx", down_filepath)) down_filepath <- gsub("raw_UMIs", "matrix", down_filepath)
+	down_url <- data2download[f,"ftp_url"]
+	cat("Downloading file", down_filename, "to", down_filepath, "\n")
+	download.file(url=down_url, destfile=down_filepath)
+}
+
+## Bulk-RNA-seq data
+bulk <- list()
+# raw counts
+bulk$counts <- read.table(paste(down_dir, "NCOMMS-19-7936188_bulk_RNAseq_raw_counts.txt", 
+				sep="/"), sep="\t", header=TRUE, row.names=1)
+# metadata
+bulk$meta <- read.table(paste(down_dir, "NCOMMS-19-7936188_bulk_RNAseq_metadata.txt", 
+			      sep="/"), sep="\t", header=TRUE, row.names=1)
+
+# Convert Ensemble ids to gene names w/ biomaRt
+if (!"biomaRt" %in% installed.packages()) remotes::install_github("grimbough/biomaRt")
+ensembl <- biomaRt::useEnsembl(biomart="genes", dataset="hsapiens_gene_ensembl", 
+                               host="https://mar2017.archive.ensembl.org") #v88 - authors: Ensembl v87 
+genes2symbols <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "external_gene_name"),
+				filters = "ensembl_gene_id", values=row.names(bulk$counts), 
+				mart=ensembl)
+sort.genes2symbols <- data.frame("ensembl_gene_id"=row.names(bulk$counts))
+sort.genes2symbols <- left_join(sort.genes2symbols, genes2symbols, by="ensembl_gene_id")
+sort.genes2symbols <- sort.genes2symbols[!is.na(sort.genes2symbols$external_gene_name),]
+sort.genes2symbols$external_gene_name <- make.unique(sort.genes2symbols$external_gene_name)
+
+## scRNA-seq data
+# import gene expression 10X data into Seurat
+data10x <- Read10X(data.dir=down_dir, gene.column=1) # import 10x data as sparse matrix 
+# metadata
+sc.meta <- read.table(paste(down_dir, "NCOMMS-19-7936188_metadata.txt", sep="/"), 
+		      header=TRUE, row.names=1, sep="\t")
+
+## Filter bulk- & single-cell-RNA to common genes
+# Get shared genes between bulk & single-cell
+common.genes <- intersect(row.names(data10x), sort.genes2symbols$external_gene_name)
+
+# Filter bulk
+bulk$counts <- bulk$counts[sort.genes2symbols$ensembl_gene_id,]
+row.names(bulk$counts) <- sort.genes2symbols$external_gene_name
+bulk$counts <- bulk$counts[common.genes,]
+row.names(bulk$counts) <- gsub("_", "-", row.names(bulk$counts))
+
+# Seurat object
+stopifnot(all(row.names(sc.meta)==colnames(data10x)))
+seu <- CreateSeuratObject(counts=data10x[common.genes,], 
+			  meta.data=sc.meta) # convert gene exp. sparse matrix into Seurat class object
+stopifnot(all(row.names(seu)==row.names(bulk$counts)))
+
+```
+
+<br>
+
+*Question*: **How many common genes were found between bulk- and single-cell-RNA-seq data sets and how many samples and cells compose the bulk and  single-cell data?** *(2 min)*
+
+><p><font size=2>Tip: type the object `seu` in the R console and interpret the message printed or provide the object `seu` to the functions `nrow()` and `ncol()` which count the no. of rows (=genes) and columns (=cells). To check the no. of bulk-related samples provide the bulk counts, `bulk$counts`, to the function `ncol()`.</p></font>
+
+<details><summary>*Answer*</summary><p> 
+
+The Cano-Gamez et al., 2020 scRNA-seq dataset comprises `r nrow(seu)` genes and `r ncol(seu)` cells whereas the bulk-RNA-seq comprises `nrow(bulk$counts)` genes and `ncol(bulk$counts)` samples. 
+
+</p></details>
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+### Metadata 
+
+_(5 min)_
+
+<br>
+
+Get familiar with the metadata fields for the bulk- and sc-RNA-seq data below. 
+
+<br>
+
+>Bulk-RNA-seq metadata
+
+Print below the first 5 rows of the bulk metadata `bulk$meta[1:5,]` and check how many samples (or bulk cell types) exist by cytokine condition (`cytokine_condition`) and stimulation time (`stimulation_time`) using the function `table()` that creates a confusion matrix. This will give you the number of biological replicates for each cell type upon differentiation. 
+
+The `bulk$meta` metadata comprises the following (self-explanatory) fields: `sample_id`, `cell_type`, `cytokine_condition`, `stimulation_time`, `donor_id`, `sex`, `age`, `sequencing_batch`, `cell_culture_batch`.
+
+```{r bulk meta}
+
+## Print bulk-RNA-seq metadata
+bulk$meta[1:5,]
+
+table(paste(bulk$meta$cytokine_condition, bulk$meta$stimulation_time), bulk$meta$cell_type)
+
+```
+
+<br>
+
+>Single-cell-RNA-seq metadata
+
+Do the same as above but this time for scRNA-seq data below. 
+
+The `seu@meta.data` metadata comprises the following (self-explanatory) fields: `orig.ident` (cell type - `N` or `M` - the same as `cell.type`), `nCount_RNA` (total no. of UMIs), `nFeature_RNA` (no. of different genes expressed), `cell.type` (same as `orig.ident`, but with the labels `Naive` and `Memory`), `cytokine.condition`, `donor.id`, `batch.10X` (10X sequencing batch), `nGene`, `nUMI`, `percent.mito`,`S.Score` (S division score phase), `G2M.Score` (G2/M division score phase), `Phase` (division phase), `cluster.id`, `effectorness` (effectorness score - a concept described in the paper).
+
+```{r single-cell meta}
+
+## Print single-cell-RNA-seq metadata
+seu@meta.data[1:5,]
+
+table(seu@meta.data$cytokine.condition, seu@meta.data$cell.type)
+
+```
+
+<br>
+
+>Use the samples after 5 days of stimulation for **differential gene expression**!
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+### Gene expression
+
+_(5 min)_
+
+<br>
+
+Get acquainted below with the two different types of data: **bulk**- and **single-cell**-RNA. Try to understand the main differences by looking into the first entries of these three matrices and plotting the distribution of a few samples (which in this study represent cells).   
+
+<br>
+
+<br>
+
+>Bulk-RNA
+
+```{r bulk count dist}
+
+## Distribution of bulk-RNA
+bulk$counts[1:20,1:10]
+
+## Plot the distribution of 5 random samples
+set.seed(1024)
+bulk_dist_plot <- bulk$counts[,sample(1:ncol(bulk$counts), 5)] %>% 
+	mutate("Genes"=row.names(bulk$counts)) %>% 
+	pivot_longer(., cols=starts_with("I"), names_to="Samples", values_to="Expression") %>% 
+	mutate("Expression"=log2(Expression+1)) %>% 
+	ggplot(data=., mapping=aes(x=Expression, colour=Samples)) + 
+	geom_density() + 
+	xlab("Log2(Expression+1)") + 
+	theme_bw()
+
+# Create directories to save results
+dirs2save <- paste("results/CanoGamez_et_al_2020", c("plots", "tables", "objects"), sep="/")
+for (d in dirs2save) if (!dir.exists(d)) dir.create(d, recursive=TRUE)
+
+# Save
+pdf(paste(dirs2save[1], "bulk_data_distribution_plot.pdf", sep="/"))
+print(bulk_dist_plot)
+dev.off()
+
+# Print
+print(bulk_dist_plot)
+
+```
+
+<br>
+
+<br>
+
+> Single-cell-RNA 
+
+```{r sc count dist}
+
+## Distribution of sc-RNA
+seu@assays$RNA@counts[1:20,1:10]
+
+## Plot the distribution of 5 random cells 
+set.seed(1024)
+sc_dist_plot <- seu@assays$RNA@counts[,sample(1:ncol(seu), 5)] %>% 
+	as.data.frame(.) %>% 
+	mutate("Genes"=row.names(seu)) %>% 
+	pivot_longer(., cols=contains("_"), names_to="Samples", values_to="Expression") %>% 
+	mutate("Expression"=log2(Expression+1)) %>% 
+	ggplot(data=., mapping=aes(x=Expression, colour=Samples)) + 
+	geom_density() + 
+	xlab("Log2(Expression+1)") + 
+	theme_bw()
+
+# Save
+pdf(paste(dirs2save[1], "sc_data_distribution_plot.pdf", sep="/"))
+print(sc_dist_plot)
+dev.off()
+
+# Print
+print(sc_dist_plot)
+
+```
+
+<br>
+
+>TASK 1: Discuss within your group which are the main differences between the bulk- and single-cell-RNA gene expression matrices and distributions. 
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+## Normalization 
+
+<br>
+
+The first step in any gene expression data analysis is **normalization**. Normalization aims to reduce the sequencing coverage effect across samples/cells, i.e., the differences that we observe are not because one of the samples/cells were sequenced (for example) twice as much the others. There are many types of normalization that aim to reduce other technicalities but we'll not go into those.  
+
+Normalize below the **bulk**- and **single-cell**-data.
+
+<br>
+
+<br>
+
+### Bulk-RNA 
+
+_(5 min)_
+
+<br>
+
+The bulk data will be normalized using the TMM (Trimmed Mean of M-values) normalization method from `edgeR` (watch the [StatQuest: edgeR part 1, Library Normalization](https://statquest.org/statquest-edger-part-1-library-normalization/) video for more details).
+
+Run the code below to apply `edgeR` normalization to the `bulk$counts`. The resulting object log-normalized is `bulk$logcpm`.
+
+```{r bulk norm}
+
+## Normalization
+bulk$DGEList <- edgeR::DGEList(counts=bulk$counts, remove.zeros=T) # create object for edgeR
+bulk$DGEList <- edgeR::calcNormFactors(bulk$DGEList) # calculate normalizing factors
+bulk$logcpm <- edgeR::cpm(bulk$DGEList, normalized.lib.sizes=T, prior.count=1, log=T) # normalize
+
+```
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+### Single-cell-RNA 
+
+_(5 min)_
+
+<br>
+
+<br>
+
+Here, we'll focus on the most common used method for single-cell data: log-normalization (`NormalizeData(..., normalization.method="LogNormalize")`). This method consists in dividing the expression values by the library size (=total no. UMIs or `nCount_RNA`) for each respective cell. In other words getting the relative abundance of gene expression by cell. Then, the values obtained are multiplied by a factor, usually 10,000 (`scale.factor=10000`). Finally this result is log1p transformed. 
+
+Run the code below to log-normalize the counts in the `seu` `Seurat` object. 
+
+```{r sc norm}
+
+## Normalization
+seu <- NormalizeData(seu, normalization.method="LogNormalize", scale.factor=10000)
+
+```
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+## QC: PCA 
+
+<br>
+
+The first step in every analysis is: **Quality-Control** (**QC**). In this case, the QC that we'll perform is reduced to PCA because the data was already processed. 
+
+**Principal Component Analysis** (**PCA**) is a deterministic and linear dimensional reduction method that aims to reduce the dimensionality of high-dimensional data, as it is the case of bulk- and scRNA-seq, maintaining most of the variation present in the data across a few dozens of Principal Components. It is an ideal preliminary QC data analysis for assessing (visually) which variables/factors contribute to the variance observed in the data. 
+
+<br>
+
+### Bulk-RNA 
+
+_(5 min)_
+
+<br>
+
+Run the code below to perform a PCA with the bulk data. We'll try to highlight three variables in the plot, `cytokine_condition` (dot colour), `cell_type` (shape), `stimulation_time` (size). Spend some time inspecting the result. 
+
+```{r bulk pca}
+
+## PCA
+bulk$pca <- prcomp(t(bulk$logcpm), center=TRUE, scale.=TRUE)
+
+# Plot
+bulk_pca <- bulk$pca$x %>% 
+	as.data.frame(.) %>% 
+	dplyr::select(PC1, PC2) %>% 
+	mutate("Samples"=row.names(bulk$pca$x)) %>% 
+	cbind(., bulk$meta) %>% 
+	ggplot(data=., mapping=aes(x=PC1, y=PC2, colour=cytokine_condition, 
+				   shape=cell_type, size=stimulation_time)) + 
+	geom_point() + 
+	theme_bw()
+
+# Save
+pdf(paste(dirs2save[1], "bulk_pca_plot.pdf", sep="/"))
+print(bulk_pca)
+dev.off()
+
+# Print
+print(bulk_pca)
+
+```
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+### Single-cell-RNA 
+
+_(5 min)_
+
+<br>
+
+Run the code below to perform a PCA with the single-cell data. We'll try to highlight two variables in the plot, `cytokine.condition` (dot shape), `cell.type` (colour). Spend some time inspecting the result. 
+
+```{r sc pca}
+
+## PCA
+set.seed(1024)
+# HVG
+seu <- FindVariableFeatures(seu, selection.method="vst",nfeatures=2000)
+
+# Scaling
+seu <- ScaleData(seu)
+
+# PCA
+seu <- RunPCA(seu, features=row.names(seu))
+
+# Plot
+sc_pca <- DimPlot(seu, reduction="pca", group.by="cell.type", 
+                  shape.by="cytokine.condition", pt.size=0.5)
+
+# Save
+pdf(paste(dirs2save[1], "sc_pca_plot.pdf", sep="/"))
+print(sc_pca)
+dev.off()
+
+# Print
+print(sc_pca)
+
+```
+
+<br>
+
+>TASK 2: Discuss within your group which/how the variables highlighted in each case - bulk- & sc - explain the variance observed in both data types. Some tips: check the paper - [Cano-Gamez et al., 2020](https://www.nature.com/articles/s41467-020-15543-y). 
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+## DGE 
+
+<br>
+
+**Differential gene expression** (**DGE**) consists in a statistical data analysis that aims to find the genes that are significantly different expressed between two (or more) conditions, e.g., between disease vs health conditions. In this scenario, the analyst is interested in finding the genes that are up- (more expressed in disease than health) and down-regulated (less expressed in disease compared with health).
+
+There are several statistical methods and tools to perform DGE. The choice of the method/tool may depend on the data type. 
+
+**Bulk-RNA** data arose first (compared with single-cell data). Therefore, it is a far more mature technique/method with well-established tools and guidelines for data analysis. This is one of the reasons why we'll use this data as the 'ground-truth'. Thus we'll compare the differentially expressed genes found in single-cell data against the significant differentially expressed genes found in the bulk data. Among the plethora of **bulk DGE methods** that one could use to perform DGE on bulk gene expression data is **ROTS** (*Reproducibility Optimized Test Statistic*; [Suomi et al., 2017](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005562)). **ROTS** is a very simple but accurate tool to perform differential abundance tests from count-based data, such as bulk data. It uses a modified version of the *t*-statistic and it has the ability to adjust to the proprieties of the data rather than making strong assumptions about the data.
+
+**Single-cell** data is a most more recent technique with less defined guidelines and standards. We'll use the most widely used and simple **single-cell DGE method**: **Wilcox** (a non-parametric test - [wiki](https://en.wikipedia.org/wiki/Mann%E2%80%93Whitney_U_test); [Fig. 1b - Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2/figures/1)).
+
+**Bulk DGE methods**, such as **ROTS** among many others (e.g., `DESeq2`, `edgeR`), were not designed to work directly with **single-cell** data. However, **single-cell** data can be aggregated into **pseudobulks**. Pseudobulk data consists in aggregating (summing or averaging) the gene expression values across cell types/clusters by biological replicates (see the example below from the [Fig. 2a - Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2/figures/2)). Since **pseudobulks** resemble **bulk** gene expression data, **bulk DGE methods** can be applied. Therefore, we'll first convert the single-cell data into pseudobulks and, then, perform DGE with **ROTS**. This result will be compared against the 'ground-truth' bulk data and the differences to the results obtained from the comparison with single-cell data directly will be explored.    
+
+![Pseudobulks](figs/paper_fig2_pseudobulk.png)
+
+<br>
+
+Below we'll perform the following pairwise comparisons for cells sequenced at the 5th day for each type of data (bulk, single-cell, pseudobulk) by each type of cell (i.e., `CD4_Naive`, `CD4_Memory`) resulting in 24 results of DGE: 
+
+   + _Th0 vs Resting_
+   
+   + _Th2 vs Resting_
+   
+   + _Th17 vs Resting_
+   
+   + _iTreg vs Resting_
+
+<br>
+
+<br>
+
+### Bulk-RNA 
+
+_(5 min)_
+
+<br>
+
+For **bulk** gene expression data we'll use the **bulk DGE method**: [ROTS](https://bioconductor.org/packages/release/bioc/html/ROTS.html). 
+
+`ROTS()` function requires the following parameters (we're using the defaults for the omitted parameters): 
+
+   + `data`: log-normalized data - `bulk$logcpm` (obtained above - selected only the samples required for each two-group pairwise comparison).
+
+   + `groups`: the class labels that each one of the samples belong too matching the samples order given in `data` (e.g., if the samples order in `data` is - `trt1, trt2, trt3, ctr1, ctr2, ctr3` - then `groups` will be: `0, 0, 0, 1, 1, 1` - where `0` represents `trt` group samples and `1` `ctr`).
+   
+   + `B`: the number of bootstrapping - we'll set to 100 due to time constraints, but a higher number should be used.
+   
+   + `seed`: to keep the analysis reproducible. Give any integer number. Here we'll use 1024. 
+
+<br>
+
+Run the `R` chunk code below to perform bulk DGE with `ROTS`. First we'll select the samples names for a given type of cell and cytokine condition. Then we'll perform DGE with `ROTS` and parsing the output (a list) to a `data.frame` with `gene`, `logfc`, `pvalue`, `FDR`. The results will be saved into the list `dge.bulks` (actually it is a list of lists). Do not call this object directly because it contains 8 data frames with thousands of rows. You can inspect this result by using three functions: `names()`, `length()` (to see the sub lists), `head()` (only after you know the name of the sub lists, inspect the individual data frames, e.g., `head(dge.bulks$CD4_Naive$Th0_vs_Resting)`). 
+
+```{r bulk dge}
+
+## DGE
+# Samples per condition 
+cell.types <- c("CD4_Memory", "CD4_Naive")
+stim.groups <- c("Resting", "Th0", "Th2", "Th17", "iTreg")
+time.select <- "5d"
+bulk.cell.comp <- list()
+for (cell in cell.types) {
+	bulk.cell.comp[[cell]] <- list()
+	for (stim in stim.groups) {
+		bulk.cell.comp[[cell]][[stim]] <- bulk$meta %>% 
+			filter(cell_type==cell & 
+			       cytokine_condition==stim & 
+			       stimulation_time==time.select) %>% 
+			dplyr::select(sample_id) %>% pull(.)
+	}
+}
+
+# DGE: ROTS
+dge.bulks <- list()
+for (cell in cell.types) {
+	dge.bulks[[cell]] <- list()
+	ctrl.samps <- bulk.cell.comp[[cell]]$Resting
+	for (stim in stim.groups[stim.groups!="Resting"]) {
+		cat("\nPerforming DGE for", cell, "cell with ROTS:", stim, "vs Resting...\n")
+		comp <- paste0(stim, "_vs_", "Resting")
+		trt.samps <- bulk.cell.comp[[cell]][[stim]] 
+		group.comp <- c(rep(0, length(trt.samps)), rep(1, length(ctrl.samps)))
+		dge.res <- ROTS(data=bulk$logcpm[,c(trt.samps, ctrl.samps)], 
+		                groups=group.comp, B=100, seed=1024)
+		dge.bulks[[cell]][[comp]] <- data.frame("gene"=names(dge.res$logfc), 
+		                                        "logfc"=dge.res$logfc, 
+		                                        "pvalue"=dge.res$pvalue, 
+		                                        "FDR"=dge.res$FDR)
+		cat("The no. of significant genes (FDR<0.05) found was:", sum(dge.res$FDR<0.05), "\n")
+	}
+}
+
+```
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+### sc-RNA 
+
+_(5 min)_
+
+<br>
+
+For **single-cell** gene expression data we'll use the **single-cell DGE method**: _Wilcox_ (implemented in `Seurat`). 
+
+`FindMarkers()` function requires the following parameters (we're using the defaults for the omitted parameters): 
+
+   + `object`: `Seurat` object - `seu` - with `seu@data` data log-normalized.
+
+   + `ident.1`: identity of the first group of cells. To be compared against the cells belonging to `ident.2`.
+   
+   + `ident.2`: identity of the second group of cells. 
+   
+   + `logfc.threshold`: log fold change threshold. Set to `0`.  
+   
+   + `min.pct`: minimum fraction that a gene needs to be expressed in `ident.1` or `ident.2` to be considered for DGE (use `0.1` - 10%)
+   
+   + `test.use`: DGE test to use - `wilcox`
+   
+   ident.1=trt.cells, ident.2=ctrl.cells, 
+		                       logfc.threshold=0, min.pct=0.1, test.use="wilcox"
+
+<br>
+
+Run the `R` chunk code below to perform single-cell DGE with `Wilcox`. First we'll set the groups of cells to be compared given type of cell and cytokine condition. Then we'll perform DGE with `Wilcox` (using the `Seurat` function `FindMarkers()`) and parsing the output which looks slightly different than the previous one, but it is equivalent (`gene`, `p_val`, `avg_log2FC`, `pct.1`, `pct.2`, `p_val_adj`). The results will be saved into the list `dge.sc` (actually it is a list of lists). Do not call this object directly because it contains 8 data frames with thousands of rows. You can inspect this result by using three functions: `names()`, `length()` (to see the sub lists), `head()` (only after you know the name of the sub lists, inspect the individual data frames, e.g., `head(dge.sc$Naive$Th0_vs_Resting)`). 
+
+```{r sc dge}
+
+# DGE: Wilcox
+seu@meta.data[["pair_comp"]] <- paste(seu@meta.data$cell.type, seu@meta.data$cytokine.condition, sep="_")
+Idents(seu) <- "pair_comp"
+cell.types <- c("Naive", "Memory")
+stim.groups <- c("UNS", "Th0", "Th2", "Th17", "iTreg")
+dge.sc <- list()
+for (cell in cell.types) {
+	dge.sc[[cell]] <- list()
+	ctrl.cells <- paste(cell, "UNS", sep="_") 
+	for (stim in stim.groups[stim.groups!="UNS"]) {
+		cat("\nPerforming single-cell DGE for", cell, "cell with Wilcox:", stim, "vs Resting...\n")
+		comp <- paste0(stim, "_vs_", "Resting")
+		trt.cells <- paste(cell, stim, sep="_")
+		dge.res <- FindMarkers(seu, ident.1=trt.cells, ident.2=ctrl.cells, 
+		                       logfc.threshold=0, min.pct=0.1, test.use="wilcox")
+		dge.sc[[cell]][[comp]] <- dge.res %>% mutate("gene"=row.names(dge.res)) %>% 
+			dplyr::select(all_of(c("gene", "p_val", "avg_log2FC", "pct.1", "pct.2", "p_val_adj")))
+		cat("The no. of significant genes (FDR<0.05) found was:", sum(dge.sc[[cell]][[comp]]$p_val_adj<0.05), "\n")
+	}
+}
+
+```
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+### Pseudobulk
+
+_(5 min)_
+
+<br>
+
+For **pseudobulk** gene expression data we'll use the **bulk DGE method**: [ROTS](https://bioconductor.org/packages/release/bioc/html/ROTS.html). 
+
+First, we need to aggregate **single-cell** data into **pseudobulks** by summing the gene expression values by cell type, cytokine condition and biological replicate (with the `muscat` function `aggregateData()`) obtaining the object `ps$counts`. Then, this **pseudobulk** data is log-normalized using `edgeR` (as it was done for the **bulk** data above) - `ps$logcpm`. Finally, the `ROTS()` function is called in a similar manner as it was done above. The final result is a list of `data.frame`s with the DGE results called `dge.ps` (following the structure: `head(dge.ps$Naive$Th0_vs_Resting)`). 
+
+```{r ps dge}
+
+## Pseudobulks
+seu@meta.data[["pair_comp_rep"]] <- paste(seu@meta.data[["pair_comp"]], seu@meta.data[["donor.id"]], sep="_")
+sce <- as.SingleCellExperiment(seu)
+ps <- list()
+ps$counts <- muscat::aggregateData(sce, assay="counts", by="pair_comp_rep", fun="sum")
+ps$counts <- SummarizedExperiment::assay(ps$counts)
+
+# Normalization
+ps$DGEList <- edgeR::DGEList(ps$counts, remove.zeros=T)
+ps$DGEList <- edgeR::calcNormFactors(ps$DGEList)
+ps$logcpm <- edgeR::cpm(ps$DGEList, normalized.lib.sizes=T, prior.count=1, log=T)
+
+
+# DGE: ROTS
+cell.types <- c("Naive", "Memory")
+stim.groups <- c("UNS", "Th0", "Th2", "Th17", "iTreg")
+dge.ps <- list()
+for (cell in cell.types) {
+	dge.ps[[cell]] <- list()
+	ctrl.samps <- grep(paste(cell, "UNS", sep="_"), colnames(ps$logcpm), value=TRUE)
+	for (stim in stim.groups[stim.groups!="UNS"]) {
+		cat("\nPerforming single-cell DGE for", cell, "cell with Wilcox:", stim, "vs Resting...\n")
+		comp <- paste0(stim, "_vs_", "Resting")
+		trt.samps <- grep(paste(cell, stim, sep="_"), colnames(ps$logcpm), value=TRUE)
+		group.comp <- c(rep(0, length(trt.samps)), rep(1, length(ctrl.samps)))
+		dge.res <- ROTS(data=ps$logcpm[,c(trt.samps, ctrl.samps)], 
+		                groups=group.comp, B=100, seed=1024)
+		dge.ps[[cell]][[comp]] <- data.frame("gene"=names(dge.res$logfc), 
+		                                     "logfc"=dge.res$logfc, 
+		                                     "pvalue"=dge.res$pvalue, 
+		                                     "FDR"=dge.res$FDR)
+		cat("The no. of significant genes (FDR<0.05) found was:", sum(dge.res$FDR<0.05), "\n")
+	}
+}
+
+```
+
+<br>
+
+*Question*: **How the number of differentially expressed genes differ between the three methods applied above?** *(2 min)*
+
+><p><font size=2>Tip: look into the messages printed for each one of the methods.</p></font>
+
+<details><summary>*Answer*</summary><p> 
+
+The method ROTS with bulk-RNA data and the method Wilcox with the single-cell data obtained more differentially expressed genes (assuming a FDR/adjusted _p_-value<0.05) than the method ROTS with the pseudobulk data (aggregated from single-cell data). 
+
+</p></details>
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+## Comparison 
+
+_(10-15 min)_
+
+<br>
+
+<br>
+
+Now we aim to compare the lists of differentially expressed genes obtained with **single-cell Wilcox** and **pseudobulk ROTS** methods against our `ground-truth`, i.e., the bulk data (obtained also with `ROTS`). 
+
+There are several ways to compare these results. Here we'll focus in the metric _Area Under the Concordance Curve_ (**AUCC**, [Soneson & Robinson (2018)](https://www.nature.com/articles/nmeth.4612)). The **AUCC** compares two lists of differentially expressed genes by looking into the top _K_ ranked shared genes. First, both list of differentially expressed genes (i.e., FDR/adjusted _p_-value<0.05 or other _alpha_ value) are ranked from the lowest to hightest _FDR/adj_, i.e., from the most significant to lowest. Then, for the top _K_ value choosen, let's say 500, the first 500 genes are compared between both lists. It starts by checking if the first gene is the same between both lists. If it is, it means that you've one shared gene. Then, it checks how many genes are shared for the top 2 genes, and so on, until it checks how many genes are shared between the top 500 genes regardless of the order. Finally, the sum of top _K_ shared genes is divided by the number corresponding to a 100% agreement between both lists. See the example below to have a concrete example how it is calculated. 
+
+![AUCC](figs/aucc.png)
+
+<br>
+
+```{r aucc}
+
+## Run AUCC 
+
+## List of DEGs ordered by increasing significance & log2FC per cell per pairwise comparison
+top500.genes <- list()
+cell.types <- c("CD4_Naive", "CD4_Memory")
+pair.comp <- names(dge.bulks$CD4_Naive)
+type.comp <- c("bulk", "sc", "ps")
+for (cell in cell.types) {
+	top500.genes[[cell]] <- list()
+	for (pair in pair.comp) {
+		top500.genes[[cell]][[pair]] <- list() 
+		for (type in type.comp) {
+			cell.new <- cell
+			cell.new <- ifelse(type %in% c("sc", "ps"), gsub("CD4_", "", cell), cell)
+			if (type %in% "bulk") { # 'ROTS' methods - same DGE table structure
+				top500.genes[[cell]][[pair]][[type]] <- dge.bulks[[cell]][[pair]] %>%
+					filter(FDR<0.05) %>% arrange(FDR, desc(abs(logfc))) %>% 
+					pull(gene)
+			} else if (type=="ps") {
+				top500.genes[[cell]][[pair]][[type]] <- dge.ps[[cell.new]][[pair]] %>%
+					filter(FDR<0.05) %>% arrange(FDR, desc(abs(logfc))) %>% 
+					pull(gene)
+			} else { # type=='sc'
+				top500.genes[[cell]][[pair]][[type]] <- dge.sc[[cell.new]][[pair]] %>%
+					filter(p_val_adj<0.05) %>% arrange(p_val_adj, desc(abs(avg_log2FC))) %>% 
+					pull(gene)
+			}
+		} 
+	}
+}
+
+## Create function to perform AUCC
+aucc <- function(x_deg, y_deg, k=500) {
+	rank_shared <- lapply(seq_len(k), function(x) length(intersect(x_deg[1:x], y_deg[1:x])))
+	rank_shared <- unlist(rank_shared)
+	K <- (k*(k+1)/2)
+	AUCC <- sum(rank_shared) / K
+	return(AUCC)
+}
+
+## Run AUCC function
+aucc.results <- data.frame("Cell_type"=rep(cell.types, each=length(pair.comp)*2), 
+			   "Pair_comp"=rep(pair.comp, length(cell.types)*2), 
+			   "Type"=rep(c("sc", "ps", "sc", "ps"), each=4), 
+			   "AUCC"=rep(NA, length(pair.comp)*length(cell.types)*2))
+for (cell in cell.types) {
+	for (pair in pair.comp) {
+		aucc.results[aucc.results$Cell_type==cell & 
+			     aucc.results$Pair_comp==pair & 
+			     aucc.results$Type=="sc", "AUCC"] <- 
+			aucc(x_deg=top500.genes[[cell]][[pair]][["bulk"]], 
+			     y_deg=top500.genes[[cell]][[pair]][["sc"]], 
+			     k=500)
+		aucc.results[aucc.results$Cell_type==cell & 
+			     aucc.results$Pair_comp==pair & 
+			     aucc.results$Type=="ps", "AUCC"] <- 
+			aucc(x_deg=top500.genes[[cell]][[pair]][["bulk"]], 
+			     y_deg=top500.genes[[cell]][[pair]][["ps"]], 
+			     k=500)
+
+	}
+
+}
+
+# Plot data
+aucc_plot <- aucc.results %>% 
+	ggplot(data=., mapping=aes(x=Type, y=AUCC, fill=Type)) + 
+	geom_bar(stat="identity") + 
+	facet_grid(Cell_type~Pair_comp) + 
+	theme_bw()
+
+# Save
+pdf(paste(dirs2save[1], "aucc_comparison_barplot.pdf", sep="/"))
+print(aucc_plot)
+dev.off()
+
+# Print
+print(aucc_plot)
+
+```
+
+<br>
+
+*Question*: **Which of the two data types - single-cell vs pseudobolks - seems to resemble 'ground-truth' of differentially expressed genes obtained from the bulk data based on the AUCC scores?** *(2 min)*
+
+<details><summary>*Answer*</summary><p> 
+
+Pseudobulk data (which corresponds to the aggregation of single-cell data by summing gene expression by cell types by donors) provides much higher AUCC scores than single-cell data. This means that the list of differentially expressed genes obtained with pseudobulks is much more similar to the list of significant genes found with single-cell data when comparing against the `ground-truth` of bulk-RNA differentially expressed genes. 
+
+</p></details>
+
+<br>
+
+>TASK 3: Discuss within your group why the methods are performing so differently and why one of them is outperforming the other one. Some tips: check the distribution of pseudobulk samples as we did above for the single-cell and bulk data; inspect the top 10 differentially expressed genes by method; and, check the [Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2). 
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+## Resting vs Activation 
+
+_(10-15 min)_
+
+<br>
+
+<br>
+
+In this final section, you'll have the freedom to explore the gene expression differences that were triggered upon CD4+ T cell activation. To this end you can do a plethora of analyses and visualizations. For instance, you can select the top genes differentially expressed for each pairwise comparison and plot them in a heatmap (`DoHeatmap(seu, features = c("IL2RA",...,"CCL3"))`), boxplot (`VlnPlot(seu, features = c("MS4A1", "CD79A"))`) and/or UMAP (`FeaturePlot(seu, features = c("MS4A1", "GNLY", "CD8A"))`).  
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+### Functional analysis 
+
+_(10-15 min)_
+
+<br>
+
+<br>
+
+Ultimately, for each list of genes up- and down-regulated from each pairwise comparison made above (for each cell type by cytokine stimulation by data type) we'll perform _functional enrichment analysis_ with `gprofiler2` ([webserver](https://biit.cs.ut.ee/gprofiler/gost) - [Kolberg et al., 2020](https://f1000research.com/articles/9-709)). You can read more about the main function called below `gost()` by typing `?gprofiler2::gost`. Since this is just an API (Application Programming Interface), we'll not go through every option (you could just copy/paste your gene list of interest and get the same results in the [webserver](https://biit.cs.ut.ee/gprofiler/gost)). Here, the main result will be saved into the list `func.list`. 
+
+Run the `R` chunk code below.
+
+```{r func enrich}
+
+## Functional enrichment analysis
+
+## DGE list
+deg.list <- list()
+for (cell in cell.types) {
+	deg.list[[cell]] <- list()
+	new.cell <- gsub("CD4_", "", cell)
+	for (pair in pair.comp) {
+		deg.list[[cell]][[pair]][["bulk"]] <- deg.list[[cell]][[pair]][["sc"]] <- 
+			deg.list[[cell]][[pair]][["ps"]] <- deg.list[[cell]][[pair]] <- list()
+			## Bulk
+			deg.list[[cell]][[pair]][["bulk"]][["up"]] <- dge.bulks[[cell]][[pair]] %>% 
+				filter(FDR<0.05) %>% arrange(FDR, desc(abs(logfc))) %>% 
+				filter(logfc>0) %>% pull(gene)
+			deg.list[[cell]][[pair]][["bulk"]][["down"]] <- dge.bulks[[cell]][[pair]] %>% 
+				filter(FDR<0.05) %>% arrange(FDR, desc(abs(logfc))) %>% 
+				filter(logfc<0) %>% pull(gene)
+			## sc 
+			deg.list[[cell]][[pair]][["sc"]][["up"]] <- dge.sc[[new.cell]][[pair]] %>% 
+				filter(p_val_adj<0.05) %>% arrange(p_val_adj, desc(abs(avg_log2FC))) %>% 
+				filter(avg_log2FC>0) %>% pull(gene)
+			deg.list[[cell]][[pair]][["sc"]][["down"]] <- dge.sc[[new.cell]][[pair]] %>% 
+				filter(p_val_adj<0.05) %>% arrange(p_val_adj, desc(abs(avg_log2FC))) %>% 
+				filter(avg_log2FC<0) %>% pull(gene)
+			## sc 
+			deg.list[[cell]][[pair]][["ps"]][["up"]] <- dge.ps[[new.cell]][[pair]] %>% 
+				filter(FDR<0.05) %>% arrange(FDR, desc(abs(logfc))) %>% 
+				filter(logfc>0) %>% pull(gene)
+			deg.list[[cell]][[pair]][["ps"]][["down"]] <- dge.ps[[new.cell]][[pair]] %>% 
+				filter(FDR<0.05) %>% arrange(FDR, desc(abs(logfc))) %>% 
+				filter(logfc<0) %>% pull(gene)
+		
+	}
+}
+
+## Run functional analysis with gprofiler2
+if (!"gprofiler2" %in% installed.packages()) install.packages("gprofiler2", repos="https://cloud.r-project.org")
+library("gprofiler2")
+func.list <- list()
+for (cell in cell.types) {
+	func.list[[cell]] <- list()
+	for (pair in pair.comp) {
+		func.list[[cell]][[pair]] <- list()
+		for (type in c("bulk", "ps", "sc")) {
+			func.list[[cell]][[pair]][[type]] <- list()
+			for (reg in c("up", "down")) {
+				cat("Performing functional enrichment analysis for:", paste(cell, pair, type, reg, sep=" - "), "\n")
+				set.seed(1024)
+				func.list[[cell]][[pair]][[type]][[reg]] <- gost(query=deg.list[[cell]][[pair]][[type]][[reg]],
+				                                                 organism = "hsapiens", ordered_query = TRUE, 
+				                                                 multi_query = FALSE, significant = TRUE, 
+				                                                 exclude_iea = FALSE, measure_underrepresentation = FALSE,
+				                                                 evcodes = FALSE, user_threshold = 0.05, 
+				                                                 correction_method = "g_SCS", domain_scope = "annotated",
+				                                                 custom_bg = NULL, numeric_ns = "", sources = NULL, 
+				                                                 as_short_link = FALSE)
+
+			}
+		}
+	}
+}
+
+```
+
+Below we'll plot the functional enrichment result obtained above for CD4 Naive T cells for the upregulated genes found in the pairwise comparison _Th0 versus Resting_ across bulk-, single-cell- and pseudobulk-RNA data. We know that we expect that pathways/terms related with `response to cytokine` should be among the top enriched/significant terms. Try to find it and inspect if this term is among the top ones for the three data sets and discuss with your group the meaning of that. Consider the top ones, terms with an adjusted _p_-value<1e-16. Use this information to support your discussion when assessing which of the two methods - _single-cell Wilcox_ vs _pseudobulk ROTS_ - provide more functionally important information. You may need to look into the table rather than the plots below by calling (just an example): `head(func.list$CD4_Naive$Th0_vs_Resting$bulk$up)` (for the upregulated terms in CD4 naive cells for the comparison Th0 vs Resting). 
+
+```{r plot func enrich}
+
+# Bulk
+cat("Functional enrichment analysis for bulk data:\n")
+gostplot(func.list$CD4_Naive$Th0_vs_Resting$bulk$up, capped = TRUE, interactive = TRUE)
+
+# sc
+cat("Functional enrichment analysis for single-cell data:\n")
+gostplot(func.list$CD4_Naive$Th0_vs_Resting$sc$up, capped = TRUE, interactive = TRUE)
+
+# ps
+cat("Functional enrichment analysis for pseudobulk data:\n")
+gostplot(func.list$CD4_Naive$Th0_vs_Resting$ps$up, capped = TRUE, interactive = TRUE)
+
+```
+
+<br>
+
+>TASK 4 (if you've time): Discuss within your group which are the most important genes/pathways for CD4+ T cell activation using the DGE results as well as the functional enrichment analysis. Some tips: check the original publication where the data was published - [Cano-Gamez et al., 2020](https://www.nature.com/articles/s41467-020-15543-y).
+
+<br>
+
+```{r save r objects}
+
+# Save objects
+saveRDS(dge.bulks, paste(dirs2save[3], "objects/dge.bulks.rds", sep="/"))
+saveRDS(dge.sc, paste(dirs2save[3], "objects/dge.sc.rds", sep="/"))
+saveRDS(dge.ps, paste(dirs2save[3], "objects/dge.ps.rds", sep="/"))
+saveRDS(top500.genes, paste(dirs2save[3], "objects/top500.genes.rds", sep="/"))
+saveRDS(aucc, paste(dirs2save[3], "objects/aucc.results", sep="/"))
+saveRDS(seu, paste(dirs2save[3], "objects/seu.rds", sep="/"))
+saveRDS(ps, paste(dirs2save[3], "objects/ps.rds", sep="/"))
+saveRDS(bulk, paste(dirs2save[3], "objects/bulk.rds", sep="/"))
+saveRDS(func.list, paste(dirs2save[3], "objects/func.list.rds", sep="/"))
+
+```
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+#### R packages used and respective versions
+
+<br>
+
+```{r References, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+## R packages and versions used in these analyses
+
+sessionInfo()
+
+```
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>

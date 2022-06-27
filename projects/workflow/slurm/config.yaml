@@ -1,0 +1,56 @@
+#---------------------------Slurm configurations-------------------------------#
+# Author: António Sousa (e-mail: aggode@utu.fi)
+# Description: Slurm configurations to be passed to snakemake. This 'config.yaml'
+# is an adaptation from the github repository jdblischak/smk-simple-slurm:
+# https://github.com/jdblischak/smk-simple-slurm/blob/main/simple/config.yaml
+# Date: 25/02/2022
+# Last update: 25/02/2022
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
+#
+#cluster: 
+#  mkdir -p slurm/logs/{rule} &&
+#  sbatch
+#    --job-name=smk-{rule}-{wildcards.project} # 'wildcards.project' fails for aggregation/summary rules like: 'sum_qc_data'
+#    --partition={resources.partition}
+#    --time={resources.time_min}
+#    --mem={resources.mem_mb}
+#    -c {resources.cpus} 
+#    -o slurm/logs/{rule}/{rule}_{wildcards.project}-%j.txt
+#    -e slurm/logs/{rule}/{rule}_{wildcards.project}-%j.txt
+#    --mail-user=aggode@utu.fi
+#    --mail-type=BEGIN,END
+#    --parsable
+cluster: 
+  mkdir -p slurm/logs/{rule} &&
+  sbatch
+    --job-name=smk-{rule}-{wildcards}
+    --partition={resources.partition}
+    --time={resources.time_min}
+    --mem={resources.mem_mb}
+    -c {resources.cpus} 
+    -o slurm/logs/{rule}/{rule}_{wildcards}-%j.txt
+    -e slurm/logs/{rule}/{rule}_{wildcards}-%j.txt
+    --mail-user=aggode@utu.fi
+    --mail-type=BEGIN,END
+    --parsable
+default-resources:
+  - partition=normal
+  - cpus=1
+  - mem_mb=16000
+  - time_min=45
+resources: 
+  - cpus=20
+  - mem_mb=512000
+  - time_min=4320
+jobs: 20
+local-cores: 1
+latency-wait: 60
+use-conda: True
+printshellcmds: True
+cluster-status: 
+  slurm/status-sacct.py
+#
+#------------------------------------------------------------------------------#

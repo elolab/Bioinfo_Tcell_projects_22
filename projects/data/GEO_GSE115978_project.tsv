@@ -1,0 +1,3 @@
+filename	description	ftp_url
+GSE115978_counts.csv.gz	raw counts	https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE115978&format=file&file=GSE115978%5Fcounts%2Ecsv%2Egz
+GSE115978_cell.annotations.csv.gz	metadata	https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE115978&format=file&file=GSE115978%5Fcell%2Eannotations%2Ecsv%2Egz
