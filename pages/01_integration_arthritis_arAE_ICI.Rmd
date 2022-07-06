@@ -55,7 +55,7 @@ library("ComplexHeatmap") # plot heatmaps
 library("aricode") # ARI index clt comp
 library("reticulate") # to work w/ python packages in R
 scanorama <- import('scanorama') # import the Scanorama python package
-source("scripts/helper_functions.R") # import functions adapted to automatize integration with scanorama
+source("../scripts/helper_functions.R") # import functions adapted to automatize integration with scanorama
 
 ```
 
@@ -85,7 +85,7 @@ source("scripts/helper_functions.R") # import functions adapted to automatize in
 ## Download datasets
 
 # import table with datasets to download
-data2download <- read.table("data/GEO_GSE173303_project.tsv", 
+data2download <- read.table("../data/GEO_GSE173303_project.tsv", 
 			    sep="\t", header=TRUE)
 
 ```
@@ -128,14 +128,14 @@ Since the function used to import 10X data into `R` and `Seurat`, [Read10X](http
 ## Download & import data
 
 # create directory to save files
-down_dir <- "data/GSE173303" # directory to save datasets 
+down_dir <- "../data/GSE173303" # directory to save datasets 
 if (!dir.exists(down_dir)) dir.create(down_dir, recursive=TRUE) # create folder if doesn't exist 
 
 # loop over the table rows & download each dataset
 for (f in 1:nrow(data2download)) {
 	down_filename <- data2download[f,"filename"]
 	down_filepath <- paste(down_dir, gsub("GSE173303_", "", down_filename), 
-			       sep="/")# download file to: 'data/GSE173303'
+			       sep="/")# download file to: '../data/GSE173303'
 	down_url <- data2download[f,"ftp_url"]
 	cat("Downloading file", down_filename, "to", down_filepath, "\n")
 	download.file(url=down_url, destfile=down_filepath)
@@ -382,7 +382,7 @@ The previous `percent.mito.orig` is different than the percentage of mitochondri
 ## QC: violin plots
 
 # Create folder to save the results
-res_dirs <- paste("results/GSE173303", c("plots", "tables"), sep="/")
+res_dirs <- paste("../results/GSE173303", c("plots", "tables"), sep="/")
 for (d in res_dirs) if (!dir.exists(d)) dir.create(d, recursive=TRUE)
 
 # Plot
@@ -1085,7 +1085,7 @@ Let's create a confusion matrix for every comparison, where we'll compare the cl
 ## Clustering comparison - confusion matrix
 clts2celltype <- list()
 clts2celltype[["orig"]] <- data.frame(rbind(table(seu@meta.data$newClusterID.orig, seu@meta.data$cell.types.orig))) 
-clts2celltype[["unint"]] <- data.frame(rbind(table(seu@meta.data$seurat_clusters, seu@meta.data$cell.types.orig)))
+clts2celltype[["unint"]] <- data.frame(rbind(table(seu@meta.data$unint_seurat_clusters, seu@meta.data$cell.types.orig)))
 clts2celltype[["int_seu"]] <- data.frame(rbind(table(int@meta.data$seurat_clusters, int@meta.data$cell.types.orig)))
 clts2celltype[["int_sca"]] <- data.frame(rbind(table(int_sca@meta.data$seurat_clusters, int_sca@meta.data$cell.types.orig)))
 
@@ -1128,7 +1128,7 @@ Tregs (n=2137) belong to cluster 2.
 true_labels <- list("unint"=seu@meta.data$cell.types.orig, 
 		    "int_seu"=int@meta.data$cell.types.orig, 
 		    "int_sca"=int_sca@meta.data$cell.types.orig)
-new_clts <- list("unint"=seu@meta.data$seurat_clusters, 
+new_clts <- list("unint"=seu@meta.data$unint_seurat_clusters, 
 		 "int_seu"=int@meta.data$seurat_clusters, 
 		 "int_sca"=int_sca@meta.data$seurat_clusters)
 comp <- names(new_clts)
@@ -1142,8 +1142,8 @@ _Which result reproduces better the cell types/clusters found by the authors?_
 ```{r save objects}
 
 ## Save objects
-res_objs <- "results/GSE173303/objects"
-if(!dir.exists(res_objs)) dir.create(res_objs, recursive=TRUE)
+res_objs <- "../results/GSE173303/objects"
+if(!dir.exists(res_objs)) dir.create(res_dirs, recursive=TRUE)
 saveRDS(seu, paste(res_objs, "seu.rds", sep="/"))
 saveRDS(int, paste(res_objs, "int.rds", sep="/"))
 saveRDS(int_sca, paste(res_objs, "int_sca.rds", sep="/"))

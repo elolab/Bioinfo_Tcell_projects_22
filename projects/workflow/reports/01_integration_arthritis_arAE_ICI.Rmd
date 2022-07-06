@@ -26,7 +26,6 @@ output:
 
 ```{r setup, include=FALSE}
 
-start_time = Sys.time()
 ## Set up configuration for R chunks
 
 knitr::opts_chunk$set(
@@ -36,6 +35,7 @@ knitr::opts_chunk$set(
 	warning = FALSE
 )
 if ( ! "klippy" %in% row.names(installed.packages()) ) remotes::install_github("rlesur/klippy")
+
 ```
 
 ```{r klippy, echo=FALSE}
@@ -57,8 +57,6 @@ library("aricode") # ARI index clt comp
 library("reticulate") # to work w/ python packages in R
 scanorama <- import('scanorama') # import the Scanorama python package
 source("scripts/helper_functions.R") # import functions adapted to automatize integration with scanorama
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -78,14 +76,14 @@ end_time - start_time
 
 ### Download & Import Datasets 
 
-_(5-10 min)_
+_(7 min)_
 
 <br>
 
+Run the `R` chunk code below to import the table `data/GEO_GSE173303_project.tsv` which contains the information to download the data sets that we'll be using herein. 
 
 ```{r download datasets}
 
-start_time = Sys.time()
 ## Download datasets
 
 # import table with datasets to download
@@ -103,7 +101,7 @@ knitr::kable(data2download)
 
 ```
 
-Now use the information from the table above to download all the data from the GEO project [GSE173303](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173303) (see [publication](https://www.nature.com/articles/s41467-022-29539-3)).
+Now use the information from the table above to download all the data from the GEO project [GSE173303](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173303) (published by [Kim et al., 2022](https://www.nature.com/articles/s41467-022-29539-3)). In this study the authors used peripheral blood and/or synovial fluid samples from 20 patients with arthritis-autoimmune related adverse events.   
 
 The GEO [GSE173303](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173303) repository comprises two types of files: 
 
@@ -123,7 +121,7 @@ The GEO [GSE173303](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173303
 
 <br>
 
-The 10X data can be directly imported into `Seurat`, a `R` package developed for the analysis of scRNA-seq data ([page](https://satijalab.org/seurat/)). While the metadata will be imported separately as tab-separated tables. 
+The 10X data can be directly imported into `Seurat`, a `R` package developed for the analysis of scRNA-seq data ([page](https://satijalab.org/seurat/); [Hao et al., 2021](https://www.sciencedirect.com/science/article/pii/S0092867421005833?via%3Dihub)). While the metadata will be imported separately as tab-separated tables. 
 
 Since the function used to import 10X data into `R` and `Seurat`, [Read10X](https://satijalab.org/seurat/reference/read10x), looks into a given directory and searches for the following file names, `barcodes.tsv`, `genes.tsv`, and `matrix.mtx` (it allows compressed `.gz` files), it is more convenient to remove the prefix file name 'GSE173303_' from every file.
 
@@ -155,8 +153,6 @@ names(metadata) <- gsub("_data_metadata.tsv.gz", "", basename(metadata)) # name 
 metadata <- lapply(setNames(metadata, names(metadata)), function(x) {
 			   read.table(x, header=TRUE, sep="\t", stringsAsFactors=FALSE)
 			       }) # import tables into a list
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -176,19 +172,22 @@ _(5 min)_
 
 <br>
 
-The data was imported into `R` as a sparse matrix (RAM eficient - most of the entries are zero) with the `Seurat` `R` function `data10x <- Read10X()`. Then, the sparse matrix, where genes are rows and columns are cells, `data10x` was convert in a `Seurat` class object at `seu <- CreateSeuratObject(counts=data10x, project="GSE173303")`. The object `seu` will be used downstream to analyze the scRNA-seq data. 
+The data was imported into `R` as a sparse matrix (RAM eficient - most of the entries are zero) with the `Seurat` `R` function `data10x <- Read10X()`. Then, the sparse matrix, where genes are rows and columns are cells, `data10x` was converted in a `Seurat` class object at `seu <- CreateSeuratObject(counts=data10x, project="GSE173303")`. The object `seu` will be used downstream to analyze the scRNA-seq data. 
 
 Look into the structure of the Seurat class object by runing the code below. 
 
 ```{r seurat strc}
 
-start_time = Sys.time()
 # Seurat object structure
 str(seu)
 
 ```
 
-An object of `Seurat` class has several layers of information. You don't need to know all. Let's focus on `@assays` and `@meta.data`. The former stores the gene expression data. `Assays` are further divided into `slots` of data. Particularly important are the `slots`: `@counts` (unnormalized/raw counts), `data` (normalized data, e.g., log-noramlized with 10K scaling factor), `scale.data` (scaled data, e.g., standardized by Z-score). The latter, i.e., `@meta.data` stores the cell metadata (number of genes expressed in the cell, cluster identity, etc). 
+<br>
+
+<br>
+
+An object of `Seurat` class has several layers of information. You don't need to know all. Let's focus on `@assays` and `@meta.data`. The former stores the gene expression data. `Assays` are further divided into `slots` of data. Particularly important are the `slots`: `@counts` (unnormalized/raw counts), `@data` (normalized data, e.g., log-noramlized with 10K scaling factor), `@scale.data` (scaled data, e.g., standardized by Z-score). The latter, i.e., `@meta.data` stores the cell metadata (number of genes expressed in the cell, cluster identity, etc). 
 
 The object `seu` imported above will be called almost in every function during the analysis and most of the results will be saved directly into it. `Seurat` provides functions to access the data stored in its own class. 
 
@@ -199,6 +198,7 @@ Read more about the structure of a `Seurat` object in the [Seurat wiki](https://
 *Question*: **How many genes and cells compose the GEO GSE173303 dataset?** *(1 min)*
 
 ><p><font size=2>Tip: type the object `seu` in the R console and interpret the message printed or provide the object `seu` to the functions `nrow()` and `ncol()` which count the no. of rows (=genes) and columns (=cells).</p></font>
+
 <details><summary>*Answer*</summary><p> 
 
 The GEO GSE173303 dataset comprises `r nrow(seu)` genes and `r ncol(seu)` cells. 
@@ -213,8 +213,6 @@ Print below the gene expression of the first 10 genes across the first 10 cells 
 
 ## Inspect data
 seu@assays$RNA@counts[1:10,1:10]
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -242,7 +240,7 @@ It is 3.
 
 ### Metadata 
 
-_(5-10 min)_
+_(5 min)_
 
 <br>
 
@@ -250,7 +248,6 @@ Let's inspect below what the `@meta.data` slot contains (run the code).
 
 ```{r @meta.data}
 
-start_time = Sys.time()
 # Print the first 6 rows of '@meta.data'
 head(seu@meta.data)
 
@@ -261,6 +258,7 @@ head(seu@meta.data)
 *Question*: **What do you think each column represents?** *(3 min)*
 
 ><p><font size=2>Tip: discuss this in group.</p></font>
+
 <details><summary>*Answer*</summary><p> 
 
 The slot `@meta.data` contains 3 columns/variables: `orig.ident`, `nCount_RNA`, `nFeature_RNA`. These variables were created automatically from the data without us providing any information. `orig.ident` refers to the identity of the cell. This matches the prefix of the cell barcode represented as row names of the `orig.ident`. This is because the function `CreateSeuratObject()` contains two parameters: `names.delim = "_"` and `names.field = 1`. These parameters will split the cell barcode names by `names.delim` and pick the first element, i.e., 45 for the first 6 cells. You will understand the meaning of these values below. `nCount_RNA` is just the total number of UMIs in a cell (obtained by suming all the expression values in a cell/column). `nFeature_RNA` is the number of different genes expressed in a cell (obtained by suming the number of genes expressing a value different than zero).   
@@ -281,11 +279,11 @@ summary(metadata$whole)
 
 ```
 
-The first three columns of `metadata$whole` seem to match the first three columns from `seu@meta.data` (this can be computational tested by doing: `all_equal(seu@meta.data, metadata$whole[,c("orig.ident", "nCount_RNA", "nFeature_RNA")])`). If you run the previous code you'll realize that the message printed suggests they are different. This is because the data types/classes of the same columns are different across tables, but the values are the same. _How can we be sure?_ By comparing the cell barcodes in the two tables: `all(row.names(seu@meta.data)==metadata$whole$barcodes)`. It returns `TRUE` meaning the cell barcodes between tables are exactly the same. This is useful, because we now know that we can combine the `metadata$whole` to `seu@meta.data` in order to access this data from our `Seurat` object. This will be convenient to plot and query the data later. 
+The first three columns of `metadata$whole` seem to match the first three columns from `seu@meta.data` (this can be computational tested by doing: `all_equal(seu@meta.data, metadata$whole[,c("orig.ident", "nCount_RNA", "nFeature_RNA")])`). If you run the previous code you'll realize that the message printed suggests they are different. This is because the data types/classes of the same columns are different across tables, but the values are the same. _How can we be sure?_ By comparing the cell barcodes in the two tables: `all(row.names(seu@meta.data)==metadata$whole$barcodes)`. It returns `TRUE` meaning the cell barcodes between tables are exactly the same. This is useful, because we know now that we can combine the `metadata$whole` to `seu@meta.data` in order to access this data from our `Seurat` object. This will be convenient to plot and query the data later. 
 
 To understand the meaning of every column in `metadata$whole` you would need to read carefully the information available in the GEO [GSE173303](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE173303) repository from where we downloaded the data from. For reasons of time, this was done for you and summarized below.
 
-   + `orig.ident`: original identity of every cell regarding the 8 matched donor sample from arthritis-irAE subjects (8 synovial fluid cells vs 8 PBMCs, n=16) that they came from: A7, A40, 45, A56, 62, 63, 65, 76 (synovial), A7B, A40B, 45B, A56B, 62B, 63B, 65B, 76B (PBMCs).
+   + `orig.ident`: original identity of every cell regarding the 8 matched donor sample from arthritis-irAE subjects (8 synovial fluid samples vs 8 PBMCs, n=16) that they came from: A7, A40, 45, A56, 62, 63, 65, 76 (synovial), A7B, A40B, 45B, A56B, 62B, 63B, 65B, 76B (PBMCs).
 
    + `nCount_RNA`: total no. of UMIs expressed by cell. 
 
@@ -333,10 +331,10 @@ seu@meta.data <- cbind(seu@meta.data, tmp)
 
 # Look how the updated Seurat meta.data looks like
 head(seu@meta.data)
-end_time = Sys.time()
-end_time - start_time
 
 ```
+
+<br>
 
 Now we're ready to start our analysis with `Seurat`!
 
@@ -356,7 +354,7 @@ Now we're ready to start our analysis with `Seurat`!
 
 ### Viz
 
-_(5-10 min)_
+_(5 min)_
 
 <br>
 
@@ -367,6 +365,7 @@ The percentage of mitochondrial genes was already estimated by the authors, but 
 *Question*: **Which and how many mitochondrial genes are present in this data set?** *(1 min)*
 
 ><p><font size=2>Tip: use the following code `grep("^MT-", row.names(seu), value=TRUE)` to retrieve the mitochondrial genes together with the function `length()` to get the number of mt genes.</p></font>
+
 <details><summary>*Answer*</summary><p> 
 
 The mitochondrial genes present are: `r grep("^MT-", row.names(seu), value=TRUE)`. 
@@ -377,7 +376,6 @@ The total no. of mt genes is: `r length(grep("^MT-", row.names(seu), value=TRUE)
 
 ```{r calculate percentage mt}
 
-start_time = Sys.time()
 ## Calculate percentage of mitochondrial genes by cell
 
 seu[["percent.mt"]] <- PercentageFeatureSet(seu, pattern = "^MT-") # add the 'percent.mt' to the 'meta.data' slot
@@ -388,7 +386,7 @@ seu[["percent.mt"]] <- PercentageFeatureSet(seu, pattern = "^MT-") # add the 'pe
 
 The previous `percent.mito.orig` is different than the percentage of mitochondrial genes that you had just calculated `percent.mt`. It seems that the former is in relative abundance, with a scale 0-1, whereas your calculation is in percentage (0-100%).
 
- Now let's plot the three cell properties that `Seurat` calculated: `nFeature_RNA`, `nCount_RNA`, `percent.mt`. By default Seurat uses the `@meta.data` variable `orig.ident` to set the identity of every cell. This means that the cells will be highlighted by `orig.ident`, i.e., donor sample origin. This can be changed, but for now it is good to look into the QC highlighted by the donor sample origin. In addition, we'll take opportunity of the functionality of visualization in `Seurat` to highlight the data by `control.orig` (the metadata column with the categorical variable of the sample type: `Blood` or `SF`).
+ Now let's plot the three cell properties that `Seurat` calculated: `nFeature_RNA`, `nCount_RNA`, `percent.mt`. By default Seurat uses the `@meta.data` variable `orig.ident` to set the identity of every cell. This means that the cells will be highlighted by `orig.ident`, i.e., donor sample origin. This can be changed, but for now it is good to look into the QC highlighted by the donor sample origin. In addition, we'll take opportunity of the functionality of visualization in `Seurat` to highlight the data by `control.orig` (the metadata column with the categorical variable of the sample type: `Blood` or `SF`): `SF`, in light blue, and `Blood`, in light red, violins.
 
 ```{r qc - violin plots, fig.width=12, fig.height=4}
 
@@ -413,7 +411,11 @@ print(qc_vln)
 
 ```
 
-What do you think?
+<br>
+
+_What do you think?_
+
+<br>
 
 Let's get some more concrete numbers by calculating the `median()` and `mean()` of every metric across the donor samples. 
 
@@ -452,10 +454,10 @@ dev.off()
 
 # Print
 print((qc_scatter1 + qc_scatter2))
-end_time = Sys.time()
-end_time - start_time
 
 ```
+
+<br>
 
 The scatter plot of `nCount_RNA x percent.mt` shows no relationship/dependence as expected, whereas the plot `nCount_RNA x nFeature_RNA` shows a positive relationship (highly correlated - 0.92), i.e., cells sequenced more deeply are expressing more distinct genes.  
 
@@ -496,26 +498,51 @@ Low abundant genes need to be filtered when creating the `Seurat` object (`Creat
 
 <br>
 
-## Normalization
+### Select samples
 
-_(3-5 min)_
+_(3 min)_
 
 <br>
 
-First, the data is normalized to reduce the impact of distinct sequencing depth across the cells to make them comparable. There are several normalization methods (see [SCTransform](https://satijalab.org/seurat/articles/sctransform_vignette.html)). 
+Since we've some computing limitations, we'll remove three samples: `65`, `65B` (all from `batch 0`), `A7B` (from `batch 1`). 
 
-Here, we'll focus on the most common used method: log-normalization (`NormalizeData(..., normalization.method="LogNormalize")`). This method conists in dividing the expression values by the library size (=total no. UMIs or `nCount_RNA`) for each respective cell. In other words getting the relative abundance of gene expression by cell. Then, the values obtained are multipled by a factor, usually 10,000 (`scale.factor=10000`). Finally this result is log1p transformed. 
+```{r select samples}
+
+## Select samples
+samps <- unique(as.character(seu@meta.data$orig.ident))
+samps2sel <- samps[!(samps %in% c("45", "45B", "65", "65B", "A7", "A7B"))]
+seu <- subset(seu, subset = orig.ident %in% samps2sel)
+seu@meta.data$orig.ident <- factor(as.character(seu@meta.data$orig.ident), levels=samps2sel)
+
+```
+
+<br>
+
+<br>
+
+---
+
+<br>
+
+<br>
+
+## Normalization
+
+_(5 min)_
+
+<br>
+
+First, the data is normalized to reduce the impact of distinct sequencing depth across the cells to make them comparable. There are several normalization methods (e.g. [SCTransform](https://satijalab.org/seurat/articles/sctransform_vignette.html)). 
+
+Here, we'll focus on the most common used method: log-normalization (`NormalizeData(..., normalization.method="LogNormalize")`). This method consists in dividing the expression values by the library size (=total no. UMIs or `nCount_RNA`) for each respective cell. In other words getting the relative abundance of gene expression by cell. Then, the values obtained are multiplied by a factor, usually 10,000 (`scale.factor=10000`). Finally this result is log1p transformed. 
 
 ```{r log-normalization}
 
-start_time = Sys.time()
 ## Log-normalization
 seu <- NormalizeData(seu, normalization.method="LogNormalize", scale.factor=10000)
 
 # Inspect the result: first 10 genes x 10 cells
 seu@assays$RNA@data[1:10,1:10]
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -531,23 +558,30 @@ end_time - start_time
 
 ## HVG
 
-_(3-5 min)_
+_(5 min)_
 
 <br>
 
-Highly variable genes or features (HVG or HVF) is a set of genes/features with a high variance across the cells. In other terms, genes that change their expression level a lot across cells. _Why are we interested on these?_ Take the example below. 
+Highly variable genes or features (HVG or HVF) are a set of genes/features with a high variance across the cells. In other terms, genes that change their expression level a lot across cells. _Why are we interested on these?_ Take the example below. 
 
-We now that roughly some subsets of T cells can be classified in CD4+ or CD8+. Let's plot these two features one against other. 
+We know that roughly some subsets of T cells can be classified in CD4+ or CD8+. Let's plot these two features one against other. 
 
 ```{r cd4 vs cd8}
 
-start_time = Sys.time()
 ## CD4+ vs CD8+
 FeatureScatter(seu, feature1="CD8A", feature2="CD4", group.by="cell.types.orig")
 
 ```
 
+<br>
+
+<br>
+
 _What do you think? Are these two genes important or not?_
+
+<br>
+
+<br>
 
 Now look into two genes with very low variance: PPP1R36 and CD177. 
 
@@ -558,7 +592,15 @@ FeatureScatter(seu, feature1="PPP1R36", feature2="CD177", group.by="cell.types.o
 
 ```
 
+<br>
+
+<br>
+
 _What do you think about these two genes? Are they informative to distinguish the different cell types observed?_
+
+<br>
+
+<br>
 
 Now that you understand why we're using HVG, let's determine the top 2000 (HVG)! This value can be higher or lower. The plot below will help you to decide, but the top 2K HVG is quite often choosen. 
 
@@ -581,14 +623,17 @@ dev.off()
 
 # Print
 print((hvg_plot1 + hvg_plot2))
-end_time = Sys.time()
-end_time - start_time
 
 ```
+
+<br>
+
+<br>
 
 *Question*: **Do you recognize any of the top 20 HVG?** *(1 min)*
 
 ><p><font size=2>Tip: use the function `head()` with `VariableFeatures()` to retrieve the top 20 HVG (the top 10 also appeared highlighted in the plot above).</p></font>
+
 <details><summary>*Answer*</summary><p> 
 
 The top 20 HVG are: `r head(VariableFeatures(seu), 20)`. 
@@ -609,7 +654,7 @@ Cytokines such as `CCL2` or `CCL8`.
 
 ## Scaling
 
-_(3-5 min)_
+_(3 min)_
 
 <br>
 
@@ -619,16 +664,15 @@ Let's scaled our scRNA-seq dataset.
 
 ```{r scaling}
 
-start_time = Sys.time()
 ## Scaling
 seu <- ScaleData(seu)
 
 ## Print the first 10 rows x 10 cols
 seu@assays$RNA@scale.data[1:10,1:10]
-end_time = Sys.time()
-end_time - start_time
 
 ```
+
+<br>
 
 During scaling it is possible to regress out undesiderable variables, such as `nCount_RNA` or `percent.mt`. With this regression you can get the residuals and remove the unwanted variation caused by unwanted variables (such as the ones mentioned). Here we'll ignore this, but this could have been done above by providing the option: `vars.to.regress="percent.mt"` (to regress out mitochondrial genes). 
 
@@ -649,7 +693,7 @@ During scaling it is possible to regress out undesiderable variables, such as `n
 
 ### PCA
 
-_(5-10 min)_
+_(5 min)_
 
 <br>
 
@@ -659,7 +703,6 @@ Run it below (it will use the scaled data obtained above).
 
 ```{r pca}
 
-start_time = Sys.time()
 ## PCA
 seu <- RunPCA(seu)
 
@@ -682,6 +725,8 @@ print(pca_features)
 
 ```
 
+<br>
+
 By default we computed the first 50 PCs. Again, not all of these PCs are informative. Some of them comprise very low variation. 
 
 In order to decide the top most important PCs, i.e., the ones that hold more data variance, we'll plot below an **elbow** plot. As the name suggests the aim is to find the _elbow_ in the plot, i.e., the point where there is a drastic reduction of variance, and select these first PCs with more variance, and, thus more informative which we'll use downstream. 
@@ -698,10 +743,12 @@ dev.off()
 
 # Print
 print(elbow_plot)
-end_time = Sys.time()
-end_time - start_time
 
 ```
+
+<br>
+
+<br>
 
 *Question*: **How many principal components (PCs) do you think we should select for downstream analyses (e.g., clustering, UMAP)?** *(1 min)*
 
@@ -723,24 +770,23 @@ Let's use 30. Although other values would be equally valid such as 10, 20 or eve
 
 ### tSNE & UMAP
 
-_(5-10 min)_
+_(15 min)_
 
 <br>
 
-PCA is the basis for other methods. Although it reduces the high-dimensional data to low-dimensional space, usually is not a good method to visualize the cell populations or clusters. For this purpose there are better methods such as non-linear dimensional reduction methods like tSNE and UMAP. UMAP is a much faster method compared to tSNE and it claims to preserve the local and most of the global structure, whereas tSNE only preserves the local structure. 
+PCA is the basis for other methods. Although it reduces the high-dimensional data to low-dimensional space, usually is not a good method to visualize the cell populations or clusters. For this purpose there are better methods such as non-linear dimensional reduction methods like tSNE (t-distributed Stochastic Neighbor Embedding) and UMAP (Uniform Manifold Approximation and Projection). UMAP is a much faster method compared to tSNE and it claims to preserve the local and most of the global structure, whereas tSNE only preserves the local structure. 
 
-Run tSNE and UMAP below. 
+Run only UMAP below (you can attempt to run tSNE but it takes more time). 
 
 ```{r tsne & umap}
 
-start_time = Sys.time()
 ## tSNE & UMAP
 
 # tSNE
-seu <- RunTSNE(seu, dims=1:30, perplexity=30)
+#seu <- RunTSNE(seu, dims=1:30, perplexity=30)
 
 # UMAP
-seu <- RunUMAP(seu, dims = 1:30)
+seu <- RunUMAP(seu, dims=1:30)
 
 ```
 
@@ -754,30 +800,38 @@ vars2plot <- c("cell.types.orig", "newClusterID.orig",
 dr_plots[["tsne"]] <- dr_plots[["umap"]] <- dr_plots <- list()
 for (v in vars2plot) {
 	for (mth in c("tsne", "umap")) {
-		dr_plots[[mth]][[v]] <- DimPlot(seu, reduction=mth, group.by=v, label=TRUE) + 
-			ggtitle(v)
+	  if (mth %in% names(seu@reductions)) {
+	    		dr_plots[[mth]][[v]] <- DimPlot(seu, reduction=mth, group.by=v, label=TRUE) + 
+	    		  ggtitle(v)
+	  }
 	}
 }
 
 # Save tSNE & UMAP 
-pdf(paste(res_dirs[1], "unintegrated_vars_tsne_plots.pdf", sep="/"), width=24, height=16)
-cowplot::plot_grid(plotlist=dr_plots[["tsne"]], ncol=3)
-dev.off()
+# pdf(paste(res_dirs[1], "unintegrated_vars_tsne_plots.pdf", sep="/"), width=24, height=16)
+# cowplot::plot_grid(plotlist=dr_plots[["tsne"]], ncol=3)
+# dev.off()
 pdf(paste(res_dirs[1], "unintegrated_vars_umap_plots.pdf", sep="/"), width=24, height=16)
 cowplot::plot_grid(plotlist=dr_plots[["umap"]], ncol=3)
 dev.off()
 
 # Print
-cowplot::plot_grid(plotlist=dr_plots[["tsne"]], ncol=3)
+# cowplot::plot_grid(plotlist=dr_plots[["tsne"]], ncol=3)
 cowplot::plot_grid(plotlist=dr_plots[["umap"]], ncol=3)
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
-_What do you think? Is there any batch in the data influencing the local/global cell structure?_
+<br>
 
-In the next sections we'll cluster the data without performing any integration. Then, we'll integrate the data using the following the integration that the authors did, but with two different methods. Afterwards, we'll compare the three results with the _ground-truth_ cell-types provided by authors to assess which was the best method. 
+<br>
+
+>TASK 1: Discuss within your group if there is any batch in the data influencing the global cell structure. Some tips: look into the dimensional reduction plots and compare the projections between the technical variables and the `cell.types.orig`.
+
+<br>
+
+<br>
+
+In the next sections we'll cluster the data without performing any integration. Then, we'll integrate the data using the same variable that the authors used, but with two different **integration** methods. Afterwards, we'll compare the three results with the _ground-truth_ cell-types provided by authors to assess which was the best method. 
 
 <br>
 
@@ -791,13 +845,13 @@ In the next sections we'll cluster the data without performing any integration. 
 
 ## Clustering
 
-_(5-10 min)_
+_(5 min)_
 
 <br>
 
 Clustering in `Seurat` is done in two steps: 
 
-   1. building a clustering based graph (KNN): `FindNeighbors()`
+   1. building a clustering based graph (SNN): `FindNeighbors()`
 
    2. find communities/populations (Louvain): `FindClusters()`
 
@@ -807,43 +861,47 @@ The second step depends on the `resolution` value given. Here, we'll use a resol
 
 ```{r clustering - unintegrated}
 
-start_time = Sys.time()
 ## Clustering: unintegrated data
 seu <- FindNeighbors(seu, dims=1:30)
 seu <- FindClusters(seu, resolution=0.5)
 
 ```
 
+<br>
+
 Now let's compare the new clustering result with the unintegrated data with the original clustering result below. 
 
 ```{r unintegrated clustering plots, fig.width=24, fig.height=10}
-
 
 ## Unintegrated clustering DR plots 
 vars2plot <- c("cell.types.orig", "newClusterID.orig", "seurat_clusters")
 dr_clts_plots[["tsne"]] <- dr_clts_plots[["umap"]] <- dr_clts_plots <- list()
 for (v in vars2plot) {
 	for (mth in c("tsne", "umap")) {
-		dr_clts_plots[[mth]][[v]] <- DimPlot(seu, reduction=mth, group.by=v, label=TRUE) + 
-			ggtitle(v)
+	  if (mth %in% names(seu@reductions)) {
+	    dr_clts_plots[[mth]][[v]] <- DimPlot(seu, reduction=mth, group.by=v, label=TRUE) + 
+	      ggtitle(v)
+		}
 	}
 }
 
 # Save tSNE & UMAP 
-pdf(paste(res_dirs[1], "unintegrated_clts_comp_tsne_plots.pdf", sep="/"), width=24, height=10)
-cowplot::plot_grid(plotlist=dr_clts_plots[["tsne"]], ncol=3)
-dev.off()
+# pdf(paste(res_dirs[1], "unintegrated_clts_comp_tsne_plots.pdf", sep="/"), width=24, height=10)
+# cowplot::plot_grid(plotlist=dr_clts_plots[["tsne"]], ncol=3)
+# dev.off()
 pdf(paste(res_dirs[1], "unintegrated_clts_comp_umap_plots.pdf", sep="/"), width=24, height=10)
 cowplot::plot_grid(plotlist=dr_clts_plots[["umap"]], ncol=3)
 dev.off()
 
 # Print
-cowplot::plot_grid(plotlist=dr_clts_plots[["tsne"]], ncol=3)
+#cowplot::plot_grid(plotlist=dr_clts_plots[["tsne"]], ncol=3)
 cowplot::plot_grid(plotlist=dr_clts_plots[["umap"]], ncol=3)
-end_time = Sys.time()
-end_time - start_time
 
 ```
+
+<br>
+
+<br>
 
 _Does the new unintegrated clustering result looks similar to the original one, i.e., `newClusterID.orig`?_
 
@@ -859,11 +917,7 @@ _Does the new unintegrated clustering result looks similar to the original one, 
 
 ## Integration 
 
-<br>
-
-### Seurat RPCA
-
-_(15-20 min)_
+_(3 min)_
 
 <br>
 
@@ -871,11 +925,11 @@ The data will be integrated by the batch variable present in the `@meta.data` ta
 
 `batch.orig` comprises 4 categories/factor levels: 0, 1, 2, 3. Each batch comprises a different set of samples.  
 
-   + batch `0`: 65, 65B 
+   + batch `0`: 65, 65B (_removed above_)
 
-   + batch `1`: A7, A7B, A13, A13B, A40, A40B
+   + batch `1`: A7, A7B (_removed_), A13, A13B, A40, A40B
 
-   + batch `2`: 45, 45B, A50, A50B, A56, A56B
+   + batch `2`: 45, 45B (_removed_), A50, A50B, A56, A56B
 
    + batch `3`: 62, 62B, 63, 63B, 76, 76B 
 
@@ -883,11 +937,20 @@ The data will be integrated by the batch variable present in the `@meta.data` ta
 
 The authors used the software `Harmony` to integrate the data and these batches appeared described in their github repository with the code used for this analysis: [Stnhy1/AR](https://github.com/Stnhy1/AR). The batches are defined in the script [addBatchInfo.R](https://github.com/Stnhy1/AR/blob/main/RNA_Preprocess/src/addBatchInfo.R#L39) use later on [run-harmony.R](https://github.com/Stnhy1/AR/blob/main/RNA_Preprocess/src/run-harmony.R#L35).
 
+<br>
 
+### Seurat RPCA
+
+_(30 min)_
+
+<br>
+ 
+Now let's perform integration with `Seurat`. `Seurat` provides different methods for **integration**. Here, since we're working with a relatively large data set, we'll use the **fast integration reciprocal PCA** (RPCA) method. This [page](https://satijalab.org/seurat/articles/integration_rpca.html) discusses the difference between the RPCA method and the 'traditional' CCA based method. In sum, `RPCA` is faster and useful when the data sets being integrated are not expected to share the majority of cell types. In this case, we have several batches, with samples coming from blood and synovial fluid. Therefore, the **RPCA** seems to be more suitable for our data set.  
+
+To perform integration using the `RPCA` `Seurat` method we start by normalizing (`NormalizeData()`), finding HVG shared across data sets (by `FindVariableFeatures()` and later `SelectIntegrationFeatures()`), scaling (`ScaleData()`) and performing PCA (`RunPCA()`) independently for each data set to be integrated. Then it comes the integration part starting by finding anchors (`FindIntegrationAnchors()`) and integrating the data sets (`IntegrateData()`).
 
 ```{r integration - seurat rpca}
 
-start_time = Sys.time()
 ## Integration - Seurat fast RPCA
 
 # Split Seurat object by batch samples to perform integration
@@ -909,8 +972,8 @@ seu_ls <- lapply(X = seu_ls, FUN = function(x) {
 
 # Find integration anchors
 anchors <- FindIntegrationAnchors(object.list=seu_ls, 
-				  anchor.features = features, 
-				  reduction = "rpca")
+                                  anchor.features = features, 
+                                  reduction = "rpca")
 
 # Integrate data sets
 int <- IntegrateData(anchorset=anchors)
@@ -921,7 +984,7 @@ DefaultAssay(int) <- "integrated"
 # Perform DR
 int <- ScaleData(int)
 int <- RunPCA(int, npcs=50)
-int <- RunTSNE(int, dims=1:30, perplexity=30)
+#int <- RunTSNE(int, dims=1:30, perplexity=30)
 int <- RunUMAP(int, reduction="pca", dims=1:30)
 
 ```
@@ -935,26 +998,30 @@ vars2plot <- c("cell.types.orig", "orig.ident", "newClusterID.orig", "seurat_clu
 dr_int_plots[["tsne"]] <- dr_int_plots[["umap"]] <- dr_int_plots <- list()
 for (v in vars2plot) {
 	for (mth in c("tsne", "umap")) {
-		dr_int_plots[[mth]][[v]] <- DimPlot(int, reduction=mth, group.by=v, label=TRUE) + 
-			ggtitle(v)
+	  	  if (mth %in% names(seu@reductions)) {
+	  	    dr_int_plots[[mth]][[v]] <- DimPlot(int, reduction=mth, group.by=v, label=TRUE) +
+	  	      ggtitle(v)
+		}
 	}
 }
 
 # Save tSNE & UMAP 
-pdf(paste(res_dirs[1], "int_seurat_vars_tsne_plots.pdf", sep="/"), width=24, height=16)
-cowplot::plot_grid(plotlist=dr_int_plots[["tsne"]], ncol=3)
-dev.off()
+# pdf(paste(res_dirs[1], "int_seurat_vars_tsne_plots.pdf", sep="/"), width=24, height=16)
+# cowplot::plot_grid(plotlist=dr_int_plots[["tsne"]], ncol=3)
+# dev.off()
 pdf(paste(res_dirs[1], "int_seurat_vars_umap_plots.pdf", sep="/"), width=24, height=16)
 cowplot::plot_grid(plotlist=dr_int_plots[["umap"]], ncol=3)
 dev.off()
 
 # Print
-cowplot::plot_grid(plotlist=dr_int_plots[["tsne"]], ncol=3)
+#cowplot::plot_grid(plotlist=dr_int_plots[["tsne"]], ncol=3)
 cowplot::plot_grid(plotlist=dr_int_plots[["umap"]], ncol=3)
 
 ```
 
-_Do the projections look better now after integrate the datasets by 'batch.ident'?_
+<br>
+
+<br>
 
 Let's cluster the result below and see how that looks like.
 
@@ -972,28 +1039,26 @@ vars2plot <- c("cell.types.orig", "newClusterID.orig", "seurat_clusters")
 dr_clts_seu_plots[["tsne"]] <- dr_clts_seu_plots[["umap"]] <- dr_clts_seu_plots <- list()
 for (v in vars2plot) {
 	for (mth in c("tsne", "umap")) {
-		dr_clts_seu_plots[[mth]][[v]] <- DimPlot(int, reduction=mth, group.by=v, label=TRUE) + 
-			ggtitle(v)
+	  if (mth %in% names(seu@reductions)) {
+	    dr_clts_seu_plots[[mth]][[v]] <- DimPlot(int, reduction=mth, group.by=v, label=TRUE) + 
+	      ggtitle(v)
+	  }
 	}
 }
 
 # Save tSNE & UMAP 
-pdf(paste(res_dirs[1], "int_seurat_clts_comp_tsne_plots.pdf", sep="/"), width=24, height=10)
-cowplot::plot_grid(plotlist=dr_clts_seu_plots[["tsne"]], ncol=3)
-dev.off()
+# pdf(paste(res_dirs[1], "int_seurat_clts_comp_tsne_plots.pdf", sep="/"), width=24, height=10)
+# cowplot::plot_grid(plotlist=dr_clts_seu_plots[["tsne"]], ncol=3)
+# dev.off()
 pdf(paste(res_dirs[1], "int_seurat_clts_comp_umap_plots.pdf", sep="/"), width=24, height=10)
 cowplot::plot_grid(plotlist=dr_clts_seu_plots[["umap"]], ncol=3)
 dev.off()
 
 # Print
-cowplot::plot_grid(plotlist=dr_clts_seu_plots[["tsne"]], ncol=3)
+#cowplot::plot_grid(plotlist=dr_clts_seu_plots[["tsne"]], ncol=3)
 cowplot::plot_grid(plotlist=dr_clts_seu_plots[["umap"]], ncol=3)
-end_time = Sys.time()
-end_time - start_time
 
 ```
-
-_Is the integrated clustering result more similar to the original clustering or not?_
 
 <br>
 
@@ -1007,26 +1072,27 @@ _Is the integrated clustering result more similar to the original clustering or 
 
 ### Scanorama
 
-_(15-20 min)_
+_(35 min)_
 
 <br>
 
-[Scanorama](https://github.com/brianhie/scanorama) is a python package developed for integration based on panorama stitching (read more about - [publication](https://www.nature.com/articles/s41587-019-0113-)).  
+[Scanorama](https://github.com/brianhie/scanorama) is a `python` package developed for integration based on panorama stitching (read more about - [Hie et al., 2019](https://www.nature.com/articles/s41587-019-0113-3)).  
 
 Contrary to `Seurat` RPCA integration method above, where we used the `integrated corrected gene expression matrix` (at `int@assays$integrated@data`) to scale the data, run the PCA and cluster, here we'll use the `corrected joint embedding` (saved as `PCA`) for dimensional reduction and clustering. The corrected gene expression matrix of `Scanorama` is saved at `int_sca@assays$integrated@counts`. 
 
 We're using the `corrected joint embedding` for downstream analyses, such as DR & clustering, because in an independent benchmark comparison of several integration methods performed by [Luecken et al., 2021](https://www.nature.com/articles/s41592-021-01336-8) this was the batch-corrected/integrated result that worked better. Although you can also use the `integrated corrected gene expression matrix` for the same purpose. 
+ 
+It was created a wrapper function `scanorama_int()` that calls and runs `Scanorama` from `R` taking as input a list of `Seurat` data sets to integrate (see how to run it directly - [page](https://github.com/brianhie/scanorama)). 
 
 ```{r integration - scanorama}
 
-start_time = Sys.time()
 ## Integration: Scanorama
 # Run integration
 set.seed(1024)
 int_sca <- scanorama_int(seu_ls)
 
 # DR
-int_sca <- RunTSNE(int_sca, dims=1:30, perplexity=30)
+#int_sca <- RunTSNE(int_sca, dims=1:30, perplexity=30)
 int_sca <- RunUMAP(int_sca, reduction="pca", dims=1:30)
 
 # Cluster the data
@@ -1044,28 +1110,32 @@ vars2plot <- c("cell.types.orig", "orig.ident", "newClusterID.orig", "seurat_clu
 dr_int_sca_plots[["tsne"]] <- dr_int_sca_plots[["umap"]] <- dr_int_sca_plots <- list()
 for (v in vars2plot) {
 	for (mth in c("tsne", "umap")) {
-		dr_int_sca_plots[[mth]][[v]] <- DimPlot(int_sca, reduction=mth, group.by=v, label=TRUE) + 
-			ggtitle(v)
+	  if (mth %in% names(seu@reductions)) {
+	    dr_int_sca_plots[[mth]][[v]] <- DimPlot(int_sca, reduction=mth, group.by=v, label=TRUE) + 
+	      ggtitle(v)
+	  }
 	}
 }
 
 # Save tSNE & UMAP 
-pdf(paste(res_dirs[1], "int_scanorama_vars_tsne_plots.pdf", sep="/"), width=24, height=16)
-cowplot::plot_grid(plotlist=dr_int_sca_plots[["tsne"]], ncol=3)
-dev.off()
+# pdf(paste(res_dirs[1], "int_scanorama_vars_tsne_plots.pdf", sep="/"), width=24, height=16)
+# cowplot::plot_grid(plotlist=dr_int_sca_plots[["tsne"]], ncol=3)
+# dev.off()
 pdf(paste(res_dirs[1], "int_scanorama_vars_umap_plots.pdf", sep="/"), width=24, height=16)
 cowplot::plot_grid(plotlist=dr_int_sca_plots[["umap"]], ncol=3)
 dev.off()
 
 # Print
-cowplot::plot_grid(plotlist=dr_int_sca_plots[["tsne"]], ncol=3)
+#cowplot::plot_grid(plotlist=dr_int_sca_plots[["tsne"]], ncol=3)
 cowplot::plot_grid(plotlist=dr_int_sca_plots[["umap"]], ncol=3)
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
-_Is the integrated clustering result more similar to the original clustering or not?_
+<br>
+
+<br>
+
+>TASK 2: Discuss within your group if the projections and, particularly, the clustering of integrated data with Seurat and Scanorama, look better now after integrate the datasets by 'batch.ident'. Some tips: look into the comparison results in the last section. 
 
 <br>
 
@@ -1077,9 +1147,9 @@ _Is the integrated clustering result more similar to the original clustering or 
 
 <br>
 
-### Comparison
+## Comparison
 
-_(10-15 min)_
+_(15 min)_
 
 <br>
 
@@ -1089,14 +1159,13 @@ Start by plotting the dimensional reduction plots below:
 
 ```{r clustering comparison - dr plots, fig.width=24, fig.height=24}
 
-start_time = Sys.time()
 ## Clustering comparison: DR plots
-pdf(paste(res_dirs[1], "clts_comp_all_tsne_plots.pdf", sep="/"), width=24, height=24)
-cowplot::plot_grid(plotlist=list(dr_clts_plots[["tsne"]][[1]], dr_clts_plots[["tsne"]][[2]], dr_clts_plots[["tsne"]][[3]],
-				 dr_clts_seu_plots[["tsne"]][[1]], dr_clts_seu_plots[["tsne"]][[2]], dr_clts_seu_plots[["tsne"]][[3]],
-				 dr_int_sca_plots[["tsne"]][[1]],dr_int_sca_plots[["tsne"]][[3]],dr_int_sca_plots[["tsne"]][[4]]
-				 ), ncol=3)
-dev.off()
+# pdf(paste(res_dirs[1], "clts_comp_all_tsne_plots.pdf", sep="/"), width=24, height=24)
+# cowplot::plot_grid(plotlist=list(dr_clts_plots[["tsne"]][[1]], dr_clts_plots[["tsne"]][[2]], dr_clts_plots[["tsne"]][[3]],
+# 				 dr_clts_seu_plots[["tsne"]][[1]], dr_clts_seu_plots[["tsne"]][[2]], dr_clts_seu_plots[["tsne"]][[3]],
+# 				 dr_int_sca_plots[["tsne"]][[1]],dr_int_sca_plots[["tsne"]][[3]],dr_int_sca_plots[["tsne"]][[4]]
+# 				 ), ncol=3)
+# dev.off()
 pdf(paste(res_dirs[1], "clts_comp_all_umap_plots.pdf", sep="/"), width=24, height=24)
 cowplot::plot_grid(plotlist=list(dr_clts_plots[["umap"]][[1]], dr_clts_plots[["umap"]][[2]], dr_clts_plots[["umap"]][[3]],
 				 dr_clts_seu_plots[["umap"]][[1]], dr_clts_seu_plots[["umap"]][[2]], dr_clts_seu_plots[["umap"]][[3]],
@@ -1105,16 +1174,20 @@ cowplot::plot_grid(plotlist=list(dr_clts_plots[["umap"]][[1]], dr_clts_plots[["u
 dev.off()
 
 # Print
-cowplot::plot_grid(plotlist=list(dr_clts_plots[["tsne"]][[1]], dr_clts_plots[["tsne"]][[2]], dr_clts_plots[["tsne"]][[3]],
-				 dr_clts_seu_plots[["tsne"]][[1]], dr_clts_seu_plots[["tsne"]][[2]], dr_clts_seu_plots[["tsne"]][[3]],
-				 dr_int_sca_plots[["tsne"]][[1]],dr_int_sca_plots[["tsne"]][[3]],dr_int_sca_plots[["tsne"]][[4]]
-				 ), ncol=3)
+# cowplot::plot_grid(plotlist=list(dr_clts_plots[["tsne"]][[1]], dr_clts_plots[["tsne"]][[2]], dr_clts_plots[["tsne"]][[3]],
+# 				 dr_clts_seu_plots[["tsne"]][[1]], dr_clts_seu_plots[["tsne"]][[2]], dr_clts_seu_plots[["tsne"]][[3]],
+# 				 dr_int_sca_plots[["tsne"]][[1]],dr_int_sca_plots[["tsne"]][[3]],dr_int_sca_plots[["tsne"]][[4]]
+# 				 ), ncol=3)
 cowplot::plot_grid(plotlist=list(dr_clts_plots[["umap"]][[1]], dr_clts_plots[["umap"]][[2]], dr_clts_plots[["umap"]][[3]],
 				 dr_clts_seu_plots[["umap"]][[1]], dr_clts_seu_plots[["umap"]][[2]], dr_clts_seu_plots[["umap"]][[3]],
 				 dr_int_sca_plots[["umap"]][[1]],dr_int_sca_plots[["umap"]][[3]],dr_int_sca_plots[["umap"]][[4]]
 				 ), ncol=3)
 
 ```
+
+<br>
+
+<br>
 
 In order to get a more concrete metric, let's compare the clusterings obtained by us with the `ground-truth` provided by authors, i.e., `newClusterID.orig` and/or `cell.types.orig`. For this purpose we can check a confusion matrix and use the [Adjusted Rand Index - ARI](https://en.wikipedia.org/wiki/Rand_index) to compare two clustering results.  
 
@@ -1148,11 +1221,19 @@ dev.off()
 print((h1+h2+h3+h4))
 
 # print clusters to cell types
-knitr::kable(clts2celltype[[type]])
+knitr::kable(clts2celltype[["orig"]])
 
 ```
 
-Above we've just printed the confusion matrix comparing the original cluster labels versus cell types given by the authors. You can open the other matrices if you want, but the **ARI** metric below will give us a more concrete value.   
+<br>
+
+<br>
+
+Above we've just printed the confusion matrix comparing the original cluster labels versus cell types given by the authors. To make the results more interpretable, the confusion matrices were printed as heatmaps. 
+
+You can open the other matrices if you want, but the **ARI** metric below will give us a more concrete value.   
+
+<br>
 
 *Question*: **Which original renamed cluster(s) corresponds to Tregs?** *(1 min)*
 
@@ -1161,6 +1242,10 @@ Above we've just printed the confusion matrix comparing the original cluster lab
 Tregs (n=2137) belong to cluster 2. 
 
 </p></details>
+
+<br>
+
+Print the `R` chunk code below to get the **ARI** metric. 
 
 ```{r clustering comparison - ari}
 
@@ -1177,7 +1262,13 @@ lapply(setNames(comp, comp), function(x) clustComp(true_labels[[x]], new_clts[[x
 
 ```
 
-_Which result reproduces better the cell types/clusters found by the authors?_
+<br>
+
+>TASK 3: Discuss within your group which result reproduces better the cell types/clusters found by the authors.
+
+<br>
+
+<br>
 
 ```{r save objects}
 
@@ -1187,8 +1278,6 @@ if(!dir.exists(res_objs)) dir.create(res_objs, recursive=TRUE)
 saveRDS(seu, paste(res_objs, "seu.rds", sep="/"))
 saveRDS(int, paste(res_objs, "int.rds", sep="/"))
 saveRDS(int_sca, paste(res_objs, "int_sca.rds", sep="/"))
-end_time = Sys.time()
-end_time - start_time
 
 ```
 

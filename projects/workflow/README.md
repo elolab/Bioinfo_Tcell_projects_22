@@ -77,11 +77,9 @@ time snakemake --profile slurm --verbose reports/03_pseudobulks_dge_rots_cd4_act
 <br>
 
 #### Resources allocated for the analysis: '01_integration_arthritis_arAE_ICI.Rmd'
-seff 332147
+Job ID: 335797
 
-Job ID: 332147
-
-Cluster: sever 
+Cluster: tamatoa
 
 User/Group: aggode/aggode
 
@@ -91,16 +89,15 @@ Nodes: 1
 
 Cores per node: 5
 
-CPU Utilized: 01:33:59
+CPU Utilized: 00:24:39
 
-CPU Efficiency: 19.80% of 07:54:35 core-walltime
+CPU Efficiency: 18.16% of 02:15:45 core-walltime
 
-Job Wall-clock time: 01:34:55
+Job Wall-clock time: 00:27:09
 
-Memory Utilized: 38.80 GB
+Memory Utilized: 21.61 GB
 
-Memory Efficiency: 62.08% of 62.50 GB
-
+Memory Efficiency: 73.77% of 29.30 GB
 
 #### Resources allocated for the analysis: '02_clustering_seurat_vs_iloreg.Rmd'
 Job ID: 333963
@@ -127,9 +124,9 @@ Memory Efficiency: 10.94% of 62.50 GB
 
 
 #### Resources allocated for the analysis: '03_pseudobulks_dge_rots_cd4_act.Rmd'
-Job ID: 334039
+Job ID: 335799
 
-Cluster: server 
+Cluster: tamatoa
 
 User/Group: aggode/aggode
 
@@ -139,15 +136,15 @@ Nodes: 1
 
 Cores per node: 5
 
-CPU Utilized: 01:54:52
+CPU Utilized: 01:41:08
 
-CPU Efficiency: 16.18% of 11:50:05 core-walltime
+CPU Efficiency: 15.63% of 10:47:00 core-walltime
 
-Job Wall-clock time: 02:22:01
+Job Wall-clock time: 02:09:24
 
 Memory Utilized: 11.27 GB
 
-Memory Efficiency: 18.04% of 62.50 GB
+Memory Efficiency: 72.14% of 15.62 GB
 
 <br>
 

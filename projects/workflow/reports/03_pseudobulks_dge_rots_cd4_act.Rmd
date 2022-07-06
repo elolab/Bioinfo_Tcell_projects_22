@@ -26,7 +26,6 @@ output:
 
 ```{r setup, include=FALSE}
 
-start_time = Sys.time()
 ## Set up configuration for R chunks
 
 knitr::opts_chunk$set(
@@ -54,8 +53,6 @@ library("dplyr") # data wrangling
 library("ggplot2") # plotting
 library("Seurat") # scRNA-seq analysis
 library("ROTS") # differential gene expression analysis
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -99,7 +96,6 @@ Below we'll import the table with the information to download.
 
 ```{r download datasets}
 
-start_time = Sys.time()
 ## Download datasets
 
 # import table with datasets to download
@@ -207,8 +203,6 @@ stopifnot(all(row.names(sc.meta)==colnames(data10x)))
 seu <- CreateSeuratObject(counts=data10x[common.genes,], 
 			  meta.data=sc.meta) # convert gene exp. sparse matrix into Seurat class object
 stopifnot(all(row.names(seu)==row.names(bulk$counts)))
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -252,7 +246,6 @@ The `bulk$meta` metadata comprises the following (self-explanatory) fields: `sam
 
 ```{r bulk meta}
 
-start_time = Sys.time()
 ## Print bulk-RNA-seq metadata
 bulk$meta[1:5,]
 
@@ -274,8 +267,6 @@ The `seu@meta.data` metadata comprises the following (self-explanatory) fields: 
 seu@meta.data[1:5,]
 
 table(seu@meta.data$cytokine.condition, seu@meta.data$cell.type)
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -309,7 +300,6 @@ Get acquainted below with the two different types of data: **bulk**- and **singl
 
 ```{r bulk count dist}
 
-start_time = Sys.time()
 ## Distribution of bulk-RNA
 bulk$counts[1:20,1:10]
 
@@ -368,8 +358,6 @@ dev.off()
 
 # Print
 print(sc_dist_plot)
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -411,13 +399,10 @@ Run the code below to apply `edgeR` normalization to the `bulk$counts`. The resu
 
 ```{r bulk norm}
 
-start_time = Sys.time()
 ## Normalization
 bulk$DGEList <- edgeR::DGEList(counts=bulk$counts, remove.zeros=T) # create object for edgeR
 bulk$DGEList <- edgeR::calcNormFactors(bulk$DGEList) # calculate normalizing factors
 bulk$logcpm <- edgeR::cpm(bulk$DGEList, normalized.lib.sizes=T, prior.count=1, log=T) # normalize
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -445,11 +430,8 @@ Run the code below to log-normalize the counts in the `seu` `Seurat` object.
 
 ```{r sc norm}
 
-start_time = Sys.time()
 ## Normalization
 seu <- NormalizeData(seu, normalization.method="LogNormalize", scale.factor=10000)
-end_time = Sys.time()
-end_time - start_time
 
 ```
 <br>
@@ -482,7 +464,6 @@ Run the code below to perform a PCA with the bulk data. We'll try to highlight t
 
 ```{r bulk pca}
 
-start_time = Sys.time()
 ## PCA
 bulk$pca <- prcomp(t(bulk$logcpm), center=TRUE, scale.=TRUE)
 
@@ -504,8 +485,6 @@ dev.off()
 
 # Print
 print(bulk_pca)
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -529,7 +508,6 @@ Run the code below to perform a PCA with the single-cell data. We'll try to high
 
 ```{r sc pca}
 
-start_time = Sys.time()
 ## PCA
 set.seed(1024)
 # HVG
@@ -552,8 +530,6 @@ dev.off()
 
 # Print
 print(sc_pca)
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -573,6 +549,8 @@ end_time - start_time
 
 ## DGE 
 
+_(5-10 min)_
+
 <br>
 
 **Differential gene expression** (**DGE**) consists in a statistical data analysis that aims to find the genes that are significantly different expressed between two (or more) conditions, e.g., between disease vs health conditions. In this scenario, the analyst is interested in finding the genes that are up- (more expressed in disease than health) and down-regulated (less expressed in disease compared with health).
@@ -585,7 +563,7 @@ There are several statistical methods and tools to perform DGE. The choice of th
 
 **Bulk DGE methods**, such as **ROTS** among many others (e.g., `DESeq2`, `edgeR`), were not designed to work directly with **single-cell** data. However, **single-cell** data can be aggregated into **pseudobulks**. Pseudobulk data consists in aggregating (summing or averaging) the gene expression values across cell types/clusters by biological replicates (see the example below from the [Fig. 2a - Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2/figures/2)). Since **pseudobulks** resemble **bulk** gene expression data, **bulk DGE methods** can be applied. Therefore, we'll first convert the single-cell data into pseudobulks and, then, perform DGE with **ROTS**. This result will be compared against the 'ground-truth' bulk data and the differences to the results obtained from the comparison with single-cell data directly will be explored.    
 
-![Pseudobulks](reports/figs/paper_fig2_pseudobulk.png)
+![Figure from Squair et al., 2021.](`r normalizePath(".")`/reports/figs/paper_fig2_pseudobulk.png)
 
 <br>
 
@@ -605,7 +583,7 @@ Below we'll perform the following pairwise comparisons for cells sequenced at th
 
 ### Bulk-RNA 
 
-_(5 min)_
+_(10 min)_
 
 <br>
 
@@ -627,7 +605,6 @@ Run the `R` chunk code below to perform bulk DGE with `ROTS`. First we'll select
 
 ```{r bulk dge}
 
-start_time = Sys.time()
 ## DGE
 # Samples per condition 
 cell.types <- c("CD4_Memory", "CD4_Naive")
@@ -664,8 +641,6 @@ for (cell in cell.types) {
 		cat("The no. of significant genes (FDR<0.05) found was:", sum(dge.res$FDR<0.05), "\n")
 	}
 }
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -681,7 +656,7 @@ end_time - start_time
 
 ### sc-RNA 
 
-_(5 min)_
+_(104 min)_
 
 <br>
 
@@ -708,9 +683,14 @@ For **single-cell** gene expression data we'll use the **single-cell DGE method*
 
 Run the `R` chunk code below to perform single-cell DGE with `Wilcox`. First we'll set the groups of cells to be compared given type of cell and cytokine condition. Then we'll perform DGE with `Wilcox` (using the `Seurat` function `FindMarkers()`) and parsing the output which looks slightly different than the previous one, but it is equivalent (`gene`, `p_val`, `avg_log2FC`, `pct.1`, `pct.2`, `p_val_adj`). The results will be saved into the list `dge.sc` (actually it is a list of lists). Do not call this object directly because it contains 8 data frames with thousands of rows. You can inspect this result by using three functions: `names()`, `length()` (to see the sub lists), `head()` (only after you know the name of the sub lists, inspect the individual data frames, e.g., `head(dge.sc$Naive$Th0_vs_Resting)`). 
 
+<br>
+
+>WARNING: this R chunk code takes around 1 hour and 44 minutes to run. You may prefer to run only one cell type, i.e., naive or memory. It's up to you. In that case you need to adapt the code!  
+
+<br>
+
 ```{r sc dge}
 
-start_time = Sys.time()
 # DGE: Wilcox
 seu@meta.data[["pair_comp"]] <- paste(seu@meta.data$cell.type, seu@meta.data$cytokine.condition, sep="_")
 Idents(seu) <- "pair_comp"
@@ -731,8 +711,6 @@ for (cell in cell.types) {
 		cat("The no. of significant genes (FDR<0.05) found was:", sum(dge.sc[[cell]][[comp]]$p_val_adj<0.05), "\n")
 	}
 }
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -748,7 +726,7 @@ end_time - start_time
 
 ### Pseudobulk
 
-_(5 min)_
+_(10 min)_
 
 <br>
 
@@ -758,7 +736,6 @@ First, we need to aggregate **single-cell** data into **pseudobulks** by summing
 
 ```{r ps dge}
 
-start_time = Sys.time()
 ## Pseudobulks
 seu@meta.data[["pair_comp_rep"]] <- paste(seu@meta.data[["pair_comp"]], seu@meta.data[["donor.id"]], sep="_")
 sce <- as.SingleCellExperiment(seu)
@@ -793,8 +770,6 @@ for (cell in cell.types) {
 		cat("The no. of significant genes (FDR<0.05) found was:", sum(dge.res$FDR<0.05), "\n")
 	}
 }
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -822,7 +797,7 @@ The method ROTS with bulk-RNA data and the method Wilcox with the single-cell da
 
 ## Comparison 
 
-_(10-15 min)_
+_(5-10 min)_
 
 <br>
 
@@ -832,13 +807,12 @@ Now we aim to compare the lists of differentially expressed genes obtained with 
 
 There are several ways to compare these results. Here we'll focus in the metric _Area Under the Concordance Curve_ (**AUCC**, [Soneson & Robinson (2018)](https://www.nature.com/articles/nmeth.4612)). The **AUCC** compares two lists of differentially expressed genes by looking into the top _K_ ranked shared genes. First, both list of differentially expressed genes (i.e., FDR/adjusted _p_-value<0.05 or other _alpha_ value) are ranked from the lowest to hightest _FDR/adj_, i.e., from the most significant to lowest. Then, for the top _K_ value choosen, let's say 500, the first 500 genes are compared between both lists. It starts by checking if the first gene is the same between both lists. If it is, it means that you've one shared gene. Then, it checks how many genes are shared for the top 2 genes, and so on, until it checks how many genes are shared between the top 500 genes regardless of the order. Finally, the sum of top _K_ shared genes is divided by the number corresponding to a 100% agreement between both lists. See the example below to have a concrete example how it is calculated. 
 
-![AUCC](reports/figs/aucc.png)
+![](`r normalizePath(".")`/reports/figs/aucc.png)
 
 <br>
 
 ```{r aucc}
 
-start_time = Sys.time()
 ## Run AUCC 
 
 ## List of DEGs ordered by increasing significance & log2FC per cell per pairwise comparison
@@ -917,8 +891,6 @@ dev.off()
 
 # Print
 print(aucc_plot)
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -968,7 +940,7 @@ In this final section, you'll have the freedom to explore the gene expression di
 
 ### Functional analysis 
 
-_(10-15 min)_
+_(30-35 min)_
 
 <br>
 
@@ -980,7 +952,6 @@ Run the `R` chunk code below.
 
 ```{r func enrich}
 
-start_time = Sys.time()
 ## Functional enrichment analysis
 
 ## DGE list
@@ -1081,8 +1052,6 @@ saveRDS(seu, paste(dirs2save[3], "seu.rds", sep="/"))
 saveRDS(ps, paste(dirs2save[3], "ps.rds", sep="/"))
 saveRDS(bulk, paste(dirs2save[3], "bulk.rds", sep="/"))
 saveRDS(func.list, paste(dirs2save[3], "func.list.rds", sep="/"))
-end_time = Sys.time()
-end_time - start_time
 
 ```
 

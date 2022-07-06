@@ -101,7 +101,7 @@ Below we'll import the table with the information to download.
 ## Download datasets
 
 # import table with datasets to download
-data2download <- read.table("data/GEO_GSE115978_project.tsv", 
+data2download <- read.table("../data/GEO_GSE115978_project.tsv", 
 			    sep="\t", header=TRUE)
 
 ```
@@ -290,7 +290,7 @@ plot_dimred_bygroup <- function(seu, batches) {
 qc_dr <- plot_dimred_bygroup(seu, c("samples", "cell.types", "treatment.group", "Cohort"))
 
 # Save
-dirs2save <- paste("results/GSE115978", c("plots", "tables", "objects"), sep="/")
+dirs2save <- paste("../results/GSE115978", c("plots", "tables", "objects"), sep="/")
 for (d in dirs2save) if (!dir.exists(d)) dir.create(d, recursive=TRUE)
 pdf(paste(dirs2save[1], "qc_meta_vars_umap.pdf", sep="/"), width=20, height=20)
 cowplot::plot_grid(plotlist=qc_dr, ncol=2)
@@ -424,7 +424,7 @@ It can be found at:
 
 **Step 1** does not actually aim to predict clusters but instead use the ability of LASSO to learn from the data to find important features and translate that into a probability matrix, _n x k_, with the likelihood of each cell _n_ belong to each one of the _k_ clusters (where _k_ is 15 by default). In order to predict clusters, **step 1** starts by using a balanced random initial clustering (*S*) as training data set, where *S* is a gene expression matrix with *m x n* (*m* genes and *n* cells), with *m* cells being partitioned into *k* clusters (by default 15). The gene expression table provided to `ILoReg` should be already normalized. The first prediction results into a **projected clustering (S')** with predicted *n* cells distributed across *k* clusters. Then, **step 2** takes place by comparing the *ARI* score between _S_ and _S'_ clusterings. If _ARI(S')_ > _ARI(S)_, it uses the new clustering *S'* as the training data set to perform the next prediction, *i.e.*, ICP run, otherwise it uses _S_. Therefore, **step 2** works as a measure to direct predictions towards more stable clusters and improve the ability of LASSO to learn from the data with that purpose in mind. Please see the figure below for a more intuitive interpretation.  
 
-![ILoReg](reports/figs/iloreg_algorithm.png)
+![ILoReg](figs/iloreg_algorithm.png)
 
 
 After running ICP _L_ times, the result is _L_ probability matrices, each one with _n x k_ dimension, where each entry represents the probability of a _n_ cell belong to each one of the _k_ clusters. This result is combined in a **joint probability matrix** used to feed a **Principal Component Analysis** (PCA). The PCA analysis finds a **consensus matrix** of *p* PCs for *n* cells which is then used to **hierarchical clustering** the *n* cells into a number of selected and expected clusters using the _Ward_'s method. The **Silhouette** method can be applied to inform the decision regarding the number of clusters to select.   
@@ -630,13 +630,13 @@ import celltypist
 import scanpy as sc
 
 # Params
-input_h5ad_file="results/GSE115978/objects/seu2celltypist.h5ad"
-model="data/models/Immune_All_Low.pkl"
-output_h5ad_file="results/GSE115978/objects/seu.annot.h5ad"
+input_h5ad_file="../results/GSE115978/objects/seu2celltypist.h5ad"
+model="../data/models/Immune_All_Low.pkl"
+output_h5ad_file="../results/GSE115978/objects/seu.annot.h5ad"
 
 if not os.path.isdir(os.path.dirname(model)): os.makedirs(os.path.dirname(model))
 # Define models path (otherwise it attemps: '~/.celltypist/data/models')
-celltypist.models.models_path=os.path.join(os.getcwd(), "data/models") # ..
+celltypist.models.models_path=os.path.join(os.path.dirname(os.getcwd()), "data/models") # ..
 
 # Download CellTypist models 
 celltypist.models.download_models(force_update=True)

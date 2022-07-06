@@ -26,7 +26,6 @@ output:
 
 ```{r setup, include=FALSE}
 
-start_time = Sys.time()
 ## Set up configuration for R chunks
 
 knitr::opts_chunk$set(
@@ -53,8 +52,6 @@ library("dplyr")
 library("ggplot2")
 library("SingleCellExperiment")
 library("ILoReg")
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -69,8 +66,6 @@ end_time - start_time
 <br>
 
 ## Data 
-
-_(2-5 min)_
 
 <br>
 
@@ -90,7 +85,7 @@ Hopefully, the authors kindly provided the data and code used to produce the ana
 
 ### Download & Import Datasets 
 
-_(5-10 min)_
+_(5 min)_
 
 <br>
 
@@ -101,7 +96,6 @@ Below we'll import the table with the information to download.
 
 ```{r data to download}
 
-start_time = Sys.time()
 ## Download datasets
 
 # import table with datasets to download
@@ -138,10 +132,6 @@ We'll import all the data, but we'll only select the immune/stroma cells to cont
 ```{r download & import data}
 
 # Download
-# files2down <- list("scrna"="https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE115978&format=file&file=GSE115978%5Fcounts%2Ecsv%2Egz", 
-# 		   "annot"="https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE115978&format=file&file=GSE115978%5Fcell%2Eannotations%2Ecsv%2Egz")
-# download.file(files2down$scrna, dest="GSE115978_counts.csv.gz")
-# download.file(files2down$annot, dest="GSE115978_cell.annotations.csv.gz")
 
 # create directory to save files
 down_dir <- "data/GSE115978" # directory to save datasets 
@@ -164,8 +154,6 @@ cell.annot <- read.table(gzfile(paste(down_dir, "GSE115978_cell.annotations.csv.
 stopifnot(all(colnames(counts)==row.names(cell.annot)))
 immune.cells <- row.names(cell.annot[!(cell.annot$cell.types %in% c("?", "Mal")),]) # remove malignant cells and unknown
 seu <- CreateSeuratObject(counts[,immune.cells], meta.data=cell.annot[immune.cells,])
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -198,7 +186,7 @@ We'll assume that the data is already processed and filtered based on the number
 
 ### Metadata
 
-_(2-5 min)_
+_(5 min)_
 
 <br>
 
@@ -206,11 +194,8 @@ Let's inspect the metadata (save in the `Seurat` object at `seu@meta.data`).
 
 ```{r print metadata}
 
-start_time = Sys.time()
 ## Print the first few rows of the metadata
 seu@meta.data[1:10,] # first 10 rows & all cols
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -249,7 +234,7 @@ Now that we've an understanding about the experimental design and meta data fiel
 
 ### QC: viz
 
-_(5-10 min)_
+_(5 min)_
 
 <br>
 
@@ -257,7 +242,6 @@ To explore how some technical variables (e.g., `samples`, `cell.types`, `treatme
 
 ```{r dr - variance}
 
-start_time = Sys.time()
 ## Dimensional reduction: workflow
 set.seed(1024) # keep reproducibility
 seu <- NormalizeData(seu, normalization.method="LogNormalize", 
@@ -308,8 +292,6 @@ dev.off()
 
 # Print
 cowplot::plot_grid(plotlist=qc_dr, ncol=2)
-end_time = Sys.time()
-end_time - start_time
 
 ```
 
@@ -324,6 +306,10 @@ end_time - start_time
 The data projected above into the low-dimensional space, i.e., UMAP, shows a great overlap/mixing between the categorical variables explored (i.e., `samples`, `treatment.group`, `Cohort`) across the two first axes meaning that the data is not being project based on potential technical noise (or covariates) but rather by true biological variability, i.e., cell type (at least across the first two axes, i.e., UMAP_1 and UMAP_2). This does not mean that these variables are not 'distorting' the cell types, but if they're there seems not be enough to be detected across these two axes. Therefore the choice between applying or not integration in this case can be left to the researcher, in the sense that by integrating we might be removing true biological variability and by not, we might incorporating some noise. Keep in mind that both options seem to be valid or at least debatable in this case. Since if a covariate effect exist in this case it seems to be weak, we'll not apply any integration (also because it is more convenient to use `ILoReg` below).  
 
 </p></details>
+
+<br>
+
+<br>
 
 Now it is time to perform **clustering**. For this end we'll apply two different methods: 
 
@@ -359,7 +345,7 @@ Then we'll compare both clustering results and discuss the similarities and diff
 
 ### Seurat
 
-_(10-15 min)_
+_(10 min)_
 
 <br>
 
@@ -380,7 +366,6 @@ Run the `R` chunk code below to perform clustering and visualize the clusters th
 
 ```{r clustering - seurat, fig.width=18, fig.height=6}
 
-start_time = Sys.time()
 # Cluster the data w/ Seurat
 set.seed(1024)
 seu <- FindNeighbors(seu, reduction="pca", dims=1:15)
@@ -394,10 +379,10 @@ dev.off()
 
 # Print
 cowplot::plot_grid(plotlist=clts_seurat, ncol=3)
-end_time = Sys.time()
-end_time - start_time
 
 ```
+
+<br>
 
 <br>
 
@@ -413,9 +398,15 @@ The clustering results are relatively similar to each other with increasing valu
 
 <br>
 
+---
+
+<br>
+
+<br>
+
 ### ILoReg
 
-_(30-40 min)_
+_(70 min)_
 
 <br>
 
@@ -429,6 +420,12 @@ It can be found at:
 
 <br>
 
+<details><summary>*Read more!*</summary><p> 
+
+The clustering results are relatively similar to each other with increasing values of resolution suggesting that the clusters are relatively stable and robust. 
+
+<br>
+
 `ILoReg` aims to find fine-grained clusters from scRNA-seq data through a novel machine learning algorithm designated **iterative clustering projection** (ICP). ICP relies mainly on two consecutive steps run _L_ times (where _L_ is 200 by default): 
 
    1. _Logistic Regression_ with L1 regularization (aka LASSO) to predict clusters
@@ -439,10 +436,14 @@ It can be found at:
 
 **Step 1** does not actually aim to predict clusters but instead use the ability of LASSO to learn from the data to find important features and translate that into a probability matrix, _n x k_, with the likelihood of each cell _n_ belong to each one of the _k_ clusters (where _k_ is 15 by default). In order to predict clusters, **step 1** starts by using a balanced random initial clustering (*S*) as training data set, where *S* is a gene expression matrix with *m x n* (*m* genes and *n* cells), with *m* cells being partitioned into *k* clusters (by default 15). The gene expression table provided to `ILoReg` should be already normalized. The first prediction results into a **projected clustering (S')** with predicted *n* cells distributed across *k* clusters. Then, **step 2** takes place by comparing the *ARI* score between _S_ and _S'_ clusterings. If _ARI(S')_ > _ARI(S)_, it uses the new clustering *S'* as the training data set to perform the next prediction, *i.e.*, ICP run, otherwise it uses _S_. Therefore, **step 2** works as a measure to direct predictions towards more stable clusters and improve the ability of LASSO to learn from the data with that purpose in mind. Please see the figure below for a more intuitive interpretation.  
 
-![ILoReg](reports/figs/iloreg_algorithm.png)
+![Figure from Smolander et al., 2021.](`r normalizePath(".")`/reports/figs/iloreg_algorithm.png)
 
 
 After running ICP _L_ times, the result is _L_ probability matrices, each one with _n x k_ dimension, where each entry represents the probability of a _n_ cell belong to each one of the _k_ clusters. This result is combined in a **joint probability matrix** used to feed a **Principal Component Analysis** (PCA). The PCA analysis finds a **consensus matrix** of *p* PCs for *n* cells which is then used to **hierarchical clustering** the *n* cells into a number of selected and expected clusters using the _Ward_'s method. The **Silhouette** method can be applied to inform the decision regarding the number of clusters to select.   
+
+</p></details>
+
+<br>
 
 `ILoReg` was designed to use all the expressed genes/features of log-normalized data. `ILoReg` is a `bioconductor` package and thus it relies on the `SingleCellExperiment` class object. An object similar to the `Seurat` object, but with a different organization, but with the same aim - gather together different layers of information. 
 
@@ -460,7 +461,7 @@ First we start by converting the `Seurat` object to `SingleCellExperiment` with 
 
    + `reg.type="L1"`: regression type. Use `"L1"` for LASSO regression. Use `"L2"` for ridge regression. 
 
-   + `threads=10`: number of threads to use to paralelize the computation.
+   + `threads=4`: number of threads to use to paralelize the computation.
 
 <br>
 
@@ -470,10 +471,9 @@ Run the `R` chunk code below.
 
 ```{r clustering - iloreg}
 
-start_time = Sys.time()
 ## Clustering: ILoReg 
 iloreg_params <- list(icp_k=15, icp_d=0.3, icp_r=5, 
-		      icp_c=0.3, icp_l=50, icp_threads=10,
+		      icp_c=0.3, icp_l=50, icp_threads=4,
 		      icp_iter=50, sel_clts=15
 )
 #seu <- FindVariableFeatures(seu, selection.method="vst", nfeatures=5000)
@@ -524,6 +524,8 @@ clts_iloreg
 
 <br>
 
+<br>
+
 *Question*: **which is the greatest difference between the projections of the Seurat and ILoReg clustering results?** *(1 min)*
 
 <details><summary>*Answer*</summary><p> 
@@ -531,6 +533,16 @@ clts_iloreg
 `ILoReg` is able to find slight differences between more similar cell clusters. The proportion of cells by cluster is more even in `ILoReg` than `Seurat`. 
 
 </p></details>
+
+<br>
+
+<br>
+
+### Comparison
+
+_(10 min)_
+
+<br>
 
 <br>
 
@@ -576,10 +588,10 @@ networkD3::saveNetwork(snk.plot, paste(dirs2save[1], "cluster_comparison_seurat_
 
 # Plot it 
 snk.plot
-end_time = Sys.time()
-end_time - start_time
 
 ```
+
+<br>
 
 <br>
 
@@ -590,6 +602,8 @@ end_time - start_time
 Clusters related with B cell (seurat cluster 2 --> ILoReg cluster 12) was the most robust/stable cluster across both methods. Then, macrophages, endothelial and CAF related clusters show some degree of stability across methods.  
 
 </p></details>
+
+<br>
 
 <br>
 
@@ -607,7 +621,7 @@ Clusters related with B cell (seurat cluster 2 --> ILoReg cluster 12) was the mo
 
 ## Cell annotation
 
-_(20-30 min)_
+_(7 min)_
 
 <br>
 
@@ -617,7 +631,6 @@ This data set do not contain cell type annotations. Therefore, we'll use the rec
 
 ```{r export h5ad}
 
-start_time = Sys.time()
 # Install SeuratDisk if not available
 # Install packages 
 if ( ! ("hdf5r" %in% installed.packages()) ) devtools::install_github("hhoeflin/hdf5r") 
@@ -712,10 +725,10 @@ cowplot::plot_grid(DimPlot(seu),
 		   scater::plotReducedDim(sce, dimred="UMAP", colour_by="new.predicted_labels"),
 		   scater::plotUMAP(sce, colour_by="majority_voting"), 
 		   ncol=3,  rel_widths= c(0.75, 1.25, 1))
-end_time = Sys.time()
-end_time - start_time
 
 ```
+
+<br>
 
 <br>
 
@@ -733,7 +746,7 @@ end_time - start_time
 
 ## Exhausted T cells 
 
-_(15-20 min)_
+_(15 min)_
 
 <br>
 
@@ -743,7 +756,6 @@ Below some markers related with **exhaustion** ("PDCD1", "CTLA4", "CCL3", "CXCR5
 
 ```{r exhausted t cells, fig.width=12, fig.height=16}
 
-start_time = Sys.time()
 ## exhausted T cells
 
 ## Scale the whole data - it might be usefull for some visualizations
@@ -765,6 +777,8 @@ dev.off()
 
 <br>
 
+<br>
+
 >TASK 3: Discuss within your group which is(are) the cluster(s) more likely to represent exhausted T cells. Some tips: inspect some of the exhausted T cell signatures found in the original publication ([Jerby-Arnon et al., 2018](https://www.sciencedirect.com/science/article/pii/S0092867418311784?via%3Dihub)) and described in the [Table S3](https://www.sciencedirect.com/science/article/pii/S0092867418311784?via%3Dihub#mmc3) of the same publication. You can use other types of visualization not only to find the most likely clusters of exhausted T cells as well to compare if some of these markers were more/less expressed in the `treatment.naive` versus `post.treatment` (`treatment.group` metadata variable). 
 
 <br>
@@ -774,8 +788,6 @@ dev.off()
 ## Save objects
 saveRDS(seu, paste(dirs2save[3], "seu.rds", sep="/"))
 saveRDS(sce, paste(dirs2save[3], "int.rds", sep="/"))
-end_time = Sys.time()
-end_time - start_time
 
 ```
 

@@ -25,7 +25,7 @@ rule integration:
 	log: "logs/01_integration_arthritis_arAE_ICI.log"
 	conda: "envs/tools.yaml"
 	resources: cpus=5, 
-		   mem_mb=64000,
+		   mem_mb=30000,
 		   time_min=180
 	script: "reports/01_integration_arthritis_arAE_ICI.Rmd"
 
@@ -40,9 +40,9 @@ rule clustering:
 	output: "reports/02_clustering_seurat_vs_iloreg.html"
 	log: "logs/02_clustering_seurat_vs_iloreg.log"
 	conda: "envs/tools.yaml"
-	resources: cpus=12, 
-		   mem_mb=64000,
-		   time_min=720
+	resources: cpus=5, 
+		   mem_mb=30000,
+		   time_min=180
 	script: "reports/02_clustering_seurat_vs_iloreg.Rmd"
 
 rule dge: 
@@ -57,7 +57,7 @@ rule dge:
 	log: "logs/03_pseudobulks_dge_rots_cd4_act.log"
 	conda: "envs/tools.yaml"
 	resources: cpus=5, 
-		   mem_mb=64000,
-		   time_min=720
+		   mem_mb=16000,
+		   time_min=180
 	script: "reports/03_pseudobulks_dge_rots_cd4_act.Rmd"
 

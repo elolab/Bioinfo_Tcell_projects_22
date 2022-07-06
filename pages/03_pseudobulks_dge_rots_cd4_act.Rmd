@@ -99,7 +99,7 @@ Below we'll import the table with the information to download.
 ## Download datasets
 
 # import table with datasets to download
-data2download <- read.table("data/CanoGamez_et_al_2020_pub.tsv", 
+data2download <- read.table("../data/CanoGamez_et_al_2020_pub.tsv", 
 			    sep="\t", header=TRUE)
 
 ```
@@ -146,14 +146,14 @@ After running the `R` chunk code below, you'll end up with two main `objects` (i
 ## Download & import data
 
 # create directory to save files
-down_dir <- "data/CanoGamez_et_al_2020" # directory to save datasets 
+down_dir <- "../data/CanoGamez_et_al_2020" # directory to save datasets 
 if (!dir.exists(down_dir)) dir.create(down_dir, recursive=TRUE) # create folder if doesn't exist 
 
 # loop over the table rows & download each dataset
 for (f in 1:nrow(data2download)) {
 	down_filename <- data2download[f,"filename"]
 	down_filepath <- paste(down_dir, gsub("NCOMMS-19-7936188_scRNAseq_", "", down_filename), 
-			       sep="/")# download file to: 'data/CanoGamez_et_al_2020'
+			       sep="/")# download file to: '../data/GSE173303'
 	if (grepl("raw_UMIs.mtx", down_filepath)) down_filepath <- gsub("raw_UMIs", "matrix", down_filepath)
 	down_url <- data2download[f,"ftp_url"]
 	cat("Downloading file", down_filename, "to", down_filepath, "\n")
@@ -170,9 +170,9 @@ bulk$meta <- read.table(paste(down_dir, "NCOMMS-19-7936188_bulk_RNAseq_metadata.
 			      sep="/"), sep="\t", header=TRUE, row.names=1)
 
 # Convert Ensemble ids to gene names w/ biomaRt
-if (!"biomaRt" %in% installed.packages()) remotes::install_github("grimbough/biomaRt") 
+if (!"biomaRt" %in% installed.packages()) remotes::install_github("grimbough/biomaRt")
 ensembl <- biomaRt::useEnsembl(biomart="genes", dataset="hsapiens_gene_ensembl", 
-			       host="https://mar2017.archive.ensembl.org") #v88 - authors: Ensembl v87 
+                               host="https://mar2017.archive.ensembl.org") #v88 - authors: Ensembl v87 
 genes2symbols <- biomaRt::getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "external_gene_name"),
 				filters = "ensembl_gene_id", values=row.names(bulk$counts), 
 				mart=ensembl)
@@ -561,7 +561,7 @@ There are several statistical methods and tools to perform DGE. The choice of th
 
 **Bulk DGE methods**, such as **ROTS** among many others (e.g., `DESeq2`, `edgeR`), were not designed to work directly with **single-cell** data. However, **single-cell** data can be aggregated into **pseudobulks**. Pseudobulk data consists in aggregating (summing or averaging) the gene expression values across cell types/clusters by biological replicates (see the example below from the [Fig. 2a - Squair et al., 2021](https://www.nature.com/articles/s41467-021-25960-2/figures/2)). Since **pseudobulks** resemble **bulk** gene expression data, **bulk DGE methods** can be applied. Therefore, we'll first convert the single-cell data into pseudobulks and, then, perform DGE with **ROTS**. This result will be compared against the 'ground-truth' bulk data and the differences to the results obtained from the comparison with single-cell data directly will be explored.    
 
-![Pseudobulks](reports/figs/paper_fig2_pseudobulk.png)
+![Pseudobulks](figs/paper_fig2_pseudobulk.png)
 
 <br>
 
@@ -799,7 +799,7 @@ Now we aim to compare the lists of differentially expressed genes obtained with 
 
 There are several ways to compare these results. Here we'll focus in the metric _Area Under the Concordance Curve_ (**AUCC**, [Soneson & Robinson (2018)](https://www.nature.com/articles/nmeth.4612)). The **AUCC** compares two lists of differentially expressed genes by looking into the top _K_ ranked shared genes. First, both list of differentially expressed genes (i.e., FDR/adjusted _p_-value<0.05 or other _alpha_ value) are ranked from the lowest to hightest _FDR/adj_, i.e., from the most significant to lowest. Then, for the top _K_ value choosen, let's say 500, the first 500 genes are compared between both lists. It starts by checking if the first gene is the same between both lists. If it is, it means that you've one shared gene. Then, it checks how many genes are shared for the top 2 genes, and so on, until it checks how many genes are shared between the top 500 genes regardless of the order. Finally, the sum of top _K_ shared genes is divided by the number corresponding to a 100% agreement between both lists. See the example below to have a concrete example how it is calculated. 
 
-![AUCC](reports/figs/aucc.png)
+![AUCC](figs/aucc.png)
 
 <br>
 
@@ -1035,15 +1035,15 @@ gostplot(func.list$CD4_Naive$Th0_vs_Resting$ps$up, capped = TRUE, interactive = 
 ```{r save r objects}
 
 # Save objects
-saveRDS(dge.bulks, paste(dirs2save[3], "dge.bulks.rds", sep="/"))
-saveRDS(dge.sc, paste(dirs2save[3], "dge.sc.rds", sep="/"))
-saveRDS(dge.ps, paste(dirs2save[3], "dge.ps.rds", sep="/"))
-saveRDS(top500.genes, paste(dirs2save[3], "top500.genes.rds", sep="/"))
-saveRDS(aucc, paste(dirs2save[3], "aucc.results", sep="/"))
-saveRDS(seu, paste(dirs2save[3], "seu.rds", sep="/"))
-saveRDS(ps, paste(dirs2save[3], "ps.rds", sep="/"))
-saveRDS(bulk, paste(dirs2save[3], "bulk.rds", sep="/"))
-saveRDS(func.list, paste(dirs2save[3], "func.list.rds", sep="/"))
+saveRDS(dge.bulks, paste(dirs2save[3], "objects/dge.bulks.rds", sep="/"))
+saveRDS(dge.sc, paste(dirs2save[3], "objects/dge.sc.rds", sep="/"))
+saveRDS(dge.ps, paste(dirs2save[3], "objects/dge.ps.rds", sep="/"))
+saveRDS(top500.genes, paste(dirs2save[3], "objects/top500.genes.rds", sep="/"))
+saveRDS(aucc, paste(dirs2save[3], "objects/aucc.results", sep="/"))
+saveRDS(seu, paste(dirs2save[3], "objects/seu.rds", sep="/"))
+saveRDS(ps, paste(dirs2save[3], "objects/ps.rds", sep="/"))
+saveRDS(bulk, paste(dirs2save[3], "objects/bulk.rds", sep="/"))
+saveRDS(func.list, paste(dirs2save[3], "objects/func.list.rds", sep="/"))
 
 ```
 
