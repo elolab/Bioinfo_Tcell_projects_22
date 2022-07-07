@@ -61,6 +61,8 @@ This repository hosts three standalone/independent projects:
       
       + _vignette_: [01_integration_arthritis_arAE_ICI.html](https://elolab.github.io/Bioinfo_Tcell_projects_22/pages/01_integration_arthritis_arAE_ICI.html)
       
+      + _results_ (Zenodo): [https://zenodo.org/record/6807707/files/GSE173303.tar.gz](https://zenodo.org/record/6807707/files/GSE173303.tar.gz?download=1)
+      
       + _estimated computing time_: 00:27:09
       
       + _estimated memory_: 21.61 GB
@@ -79,6 +81,8 @@ This repository hosts three standalone/independent projects:
       
       + _vignette_: [02_clustering_seurat_vs_iloreg.html](https://elolab.github.io/Bioinfo_Tcell_projects_22/pages/02_clustering_seurat_vs_iloreg.html)
 
+      + _results_ (Zenodo): [https://zenodo.org/record/6807707/files/GSE115978.tar.gz](https://zenodo.org/record/6807707/files/GSE115978.tar.gz?download=1)
+
       + _estimated computing time_: 01:27:26
       
       + _estimated memory_ (using 10 threads): 5.61 GB
@@ -96,6 +100,8 @@ This repository hosts three standalone/independent projects:
       + _R markdown notebook_: `03_pseudobulks_dge_rots_cd4_act.Rmd` 
       
       + _vignette_: [03_pseudobulks_dge_rots_cd4_act.html](https://elolab.github.io/Bioinfo_Tcell_projects_22/pages/03_pseudobulks_dge_rots_cd4_act.html)
+
+      + _results_ (Zenodo): [https://zenodo.org/record/6807707/files/CanoGamez_et_al_2020.tar.gz](https://zenodo.org/record/6807707/files/CanoGamez_et_al_2020.tar.gz?download=1)
 
       + _estimated computing time_: 02:09:24
       
