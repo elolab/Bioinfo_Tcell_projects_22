@@ -91,9 +91,6 @@ _(5 min)_
 
 Below we'll import the table with the information to download. 
 
-
-Below we'll import the table with the information to download. 
-
 ```{r data to download}
 
 ## Download datasets
@@ -451,7 +448,7 @@ First we start by converting the `Seurat` object to `SingleCellExperiment` with 
 
    + `k=15`: number of clusters to split the data by
 
-   + `d=0.3`: proportion of cells down- or oversampled from each cluster to use for the training data set during ICP. A value ranging 0-1. Recommended between 0.2-0.3.
+   + `d=0.3`: proportion of cells down- or over-sampled from each cluster to use for the training data set during ICP. A value ranging 0-1. Recommended between 0.2-0.3.
 
    + `L=50`: number of ICP runs. Recommended `200`. Here we'll run `50` because this is a relatively small data set and due to time constraints. 
 
@@ -465,7 +462,7 @@ First we start by converting the `Seurat` object to `SingleCellExperiment` with 
 
 <br>
 
-Then the joint probabilities are use to build a PCA (`ILoReg::RunPCA()`) which is then used for UMAP (`ILoReg::RunUMAP()`) and hierarchial clustering with `HierarchicalClustering()`. Finally, we can specify the number of clusters that we want to select: `SelectKClusters()` (in our case lets select `15`). 
+Then the joint probabilities are use to build a PCA (`ILoReg::RunPCA()`) which is then used for UMAP (`ILoReg::RunUMAP()`) and hierarchical clustering with `HierarchicalClustering()`. Finally, we can specify the number of clusters that we want to select: `SelectKClusters()` (in our case lets select `15`). 
 
 Run the `R` chunk code below. 
 

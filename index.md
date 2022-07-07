@@ -61,9 +61,9 @@ This repository hosts three standalone/independent projects:
       
       + _vignette_: [01_integration_arthritis_arAE_ICI.html](https://elolab.github.io/Bioinfo_Tcell_projects_22/pages/01_integration_arthritis_arAE_ICI.html)
       
-      + _estimated computing time_: 01:34:55
+      + _estimated computing time_: 00:27:09
       
-      + _estimated memory_: 38.80 GB
+      + _estimated memory_: 21.61 GB
       
    2. _Fine-grained clustering of single-cell data of melanoma immune/stroma cells_
    
@@ -79,9 +79,9 @@ This repository hosts three standalone/independent projects:
       
       + _vignette_: [02_clustering_seurat_vs_iloreg.html](https://elolab.github.io/Bioinfo_Tcell_projects_22/pages/02_clustering_seurat_vs_iloreg.html)
 
-      + _estimated computing time_: 00:39:18
+      + _estimated computing time_: 01:27:26
       
-      + _estimated memory_ (using 10 threads): 6.84 GB
+      + _estimated memory_ (using 10 threads): 5.61 GB
 
    3. _Differential gene expression of stimulated CD4+ T single-cell data with single-cell and pseudobulk methods_
 
@@ -97,7 +97,7 @@ This repository hosts three standalone/independent projects:
       
       + _vignette_: [03_pseudobulks_dge_rots_cd4_act.html](https://elolab.github.io/Bioinfo_Tcell_projects_22/pages/03_pseudobulks_dge_rots_cd4_act.html)
 
-      + _estimated computing time_: 02:22:01
+      + _estimated computing time_: 02:09:24
       
       + _estimated memory_: 11.27 GB
       

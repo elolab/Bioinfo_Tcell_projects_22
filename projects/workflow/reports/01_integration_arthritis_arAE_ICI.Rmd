@@ -172,9 +172,9 @@ _(5 min)_
 
 <br>
 
-The data was imported into `R` as a sparse matrix (RAM eficient - most of the entries are zero) with the `Seurat` `R` function `data10x <- Read10X()`. Then, the sparse matrix, where genes are rows and columns are cells, `data10x` was converted in a `Seurat` class object at `seu <- CreateSeuratObject(counts=data10x, project="GSE173303")`. The object `seu` will be used downstream to analyze the scRNA-seq data. 
+The data was imported into `R` as a sparse matrix (RAM efficient - most of the entries are zero) with the `Seurat` `R` function `data10x <- Read10X()`. Then, the sparse matrix, where genes are rows and columns are cells, `data10x` was converted in a `Seurat` class object at `seu <- CreateSeuratObject(counts=data10x, project="GSE173303")`. The object `seu` will be used downstream to analyze the scRNA-seq data. 
 
-Look into the structure of the Seurat class object by runing the code below. 
+Look into the structure of the Seurat class object by running the code below. 
 
 ```{r seurat strc}
 
@@ -261,7 +261,7 @@ head(seu@meta.data)
 
 <details><summary>*Answer*</summary><p> 
 
-The slot `@meta.data` contains 3 columns/variables: `orig.ident`, `nCount_RNA`, `nFeature_RNA`. These variables were created automatically from the data without us providing any information. `orig.ident` refers to the identity of the cell. This matches the prefix of the cell barcode represented as row names of the `orig.ident`. This is because the function `CreateSeuratObject()` contains two parameters: `names.delim = "_"` and `names.field = 1`. These parameters will split the cell barcode names by `names.delim` and pick the first element, i.e., 45 for the first 6 cells. You will understand the meaning of these values below. `nCount_RNA` is just the total number of UMIs in a cell (obtained by suming all the expression values in a cell/column). `nFeature_RNA` is the number of different genes expressed in a cell (obtained by suming the number of genes expressing a value different than zero).   
+The slot `@meta.data` contains 3 columns/variables: `orig.ident`, `nCount_RNA`, `nFeature_RNA`. These variables were created automatically from the data without us providing any information. `orig.ident` refers to the identity of the cell. This matches the prefix of the cell barcode represented as row names of the `orig.ident`. This is because the function `CreateSeuratObject()` contains two parameters: `names.delim = "_"` and `names.field = 1`. These parameters will split the cell barcode names by `names.delim` and pick the first element, i.e., 45 for the first 6 cells. You will understand the meaning of these values below. `nCount_RNA` is just the total number of UMIs in a cell (obtained by summing all the expression values in a cell/column). `nFeature_RNA` is the number of different genes expressed in a cell (obtained by summing the number of genes expressing a value different than zero).   
 
 </p></details>
 
@@ -504,7 +504,7 @@ _(3 min)_
 
 <br>
 
-Since we've some computing limitations, we'll remove three samples: `65`, `65B` (all from `batch 0`), `A7B` (from `batch 1`). 
+Since we've some computing limitations, we'll remove six samples: `65`, `65B` (all from `batch 0`), `A7`, `A7B` (from `batch 1`), `45`, `45B` (`batch 2`). 
 
 ```{r select samples}
 
@@ -658,7 +658,7 @@ _(3 min)_
 
 <br>
 
-Now that we've our set of highly informative genes, we'll perform **scaling**. Scaling consists in standardizing the genes/features to make them comparable and avoid the highly abundant ones of standing out which is extremely important for downstream analysis such as _Principal Component Analysis_. There are several methods. The one that we'll use is the [Z-score](https://en.wikipedia.org/wiki/Standard_score) wich consists in subtracting to a gene its mean and divide it by its standard deviation (SD) in order to obtain mean 0 and SD of 1.
+Now that we've our set of highly informative genes, we'll perform **scaling**. Scaling consists in standardizing the genes/features to make them comparable and avoid the highly abundant ones of standing out which is extremely important for downstream analysis such as _Principal Component Analysis_. There are several methods. The one that we'll use is the [Z-score](https://en.wikipedia.org/wiki/Standard_score) which consists in subtracting to a gene its mean and divide it by its standard deviation (SD) in order to obtain mean 0 and SD of 1.
 
 Let's scaled our scRNA-seq dataset. 
 
@@ -674,7 +674,7 @@ seu@assays$RNA@scale.data[1:10,1:10]
 
 <br>
 
-During scaling it is possible to regress out undesiderable variables, such as `nCount_RNA` or `percent.mt`. With this regression you can get the residuals and remove the unwanted variation caused by unwanted variables (such as the ones mentioned). Here we'll ignore this, but this could have been done above by providing the option: `vars.to.regress="percent.mt"` (to regress out mitochondrial genes). 
+During scaling it is possible to regress out undesirable variables, such as `nCount_RNA` or `percent.mt`. With this regression you can get the residuals and remove the unwanted variation caused by unwanted variables (such as the ones mentioned). Here we'll ignore this, but this could have been done above by providing the option: `vars.to.regress="percent.mt"` (to regress out mitochondrial genes). 
 
 
 <br>
@@ -697,7 +697,7 @@ _(5 min)_
 
 <br>
 
-**Principal Component Analysis** (**PCA**) is a deterministic and linear dimensional reduction method that provides the basis for other analyses. The **PCA** aims to reduce the dimensionality of high-dimensional data, as it is the case of scRNA-seq, mainting most of the variation present in the data across a few dozens of components. 
+**Principal Component Analysis** (**PCA**) is a deterministic and linear dimensional reduction method that provides the basis for other analyses. The **PCA** aims to reduce the dimensionality of high-dimensional data, as it is the case of scRNA-seq, maintaining most of the variation present in the data across a few dozens of components. 
 
 Run it below (it will use the scaled data obtained above). 
 
@@ -708,7 +708,7 @@ seu <- RunPCA(seu)
 
 ```
 
-Often the first few PCs (Principal Components) show the variation caused by the total no. of UMIs or percentage of mitochondrial genes, cell cyling genes (cell division), rather than cell type. Let's plot the PCA and highlight the cells by `nCount_RNA`, `nFeature_RNA`, `percent.mt`. 
+Often the first few PCs (Principal Components) show the variation caused by the total no. of UMIs or percentage of mitochondrial genes, cell cycling genes (cell division), rather than cell type. Let's plot the PCA and highlight the cells by `nCount_RNA`, `nFeature_RNA`, `percent.mt`. 
 
 ```{r pca - cell features}
 
@@ -1239,7 +1239,7 @@ You can open the other matrices if you want, but the **ARI** metric below will g
 
 <details><summary>*Answer*</summary><p> 
 
-Tregs (n=2137) belong to cluster 2. 
+Tregs (n=796) belong to cluster 2. 
 
 </p></details>
 
