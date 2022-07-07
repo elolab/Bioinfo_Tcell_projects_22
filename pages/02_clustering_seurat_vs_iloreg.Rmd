@@ -67,8 +67,6 @@ library("ILoReg")
 
 ## Data 
 
-_(2-5 min)_
-
 <br>
 
 For this clustering tutorial we'll use the data publicly available at GEO [GSE115978](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE115978) published by [Jerby-Arnon et al., 2018](https://www.sciencedirect.com/science/article/pii/S0092867418311784?via%3Dihub). The data comprises single-cell RNA (modified SMART-Seq2) from resected tumors from a cohort of 31 patients (*n*=15, untreated; *n*=15, post-immunotherapy resistant; *n*=1, post-immunotherapy responder).
@@ -87,12 +85,9 @@ Hopefully, the authors kindly provided the data and code used to produce the ana
 
 ### Download & Import Datasets 
 
-_(5-10 min)_
+_(5 min)_
 
 <br>
-
-Below we'll import the table with the information to download. 
-
 
 Below we'll import the table with the information to download. 
 
@@ -101,7 +96,7 @@ Below we'll import the table with the information to download.
 ## Download datasets
 
 # import table with datasets to download
-data2download <- read.table("../data/GEO_GSE115978_project.tsv", 
+data2download <- read.table("data/GEO_GSE115978_project.tsv", 
 			    sep="\t", header=TRUE)
 
 ```
@@ -134,10 +129,6 @@ We'll import all the data, but we'll only select the immune/stroma cells to cont
 ```{r download & import data}
 
 # Download
-# files2down <- list("scrna"="https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE115978&format=file&file=GSE115978%5Fcounts%2Ecsv%2Egz", 
-# 		   "annot"="https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE115978&format=file&file=GSE115978%5Fcell%2Eannotations%2Ecsv%2Egz")
-# download.file(files2down$scrna, dest="GSE115978_counts.csv.gz")
-# download.file(files2down$annot, dest="GSE115978_cell.annotations.csv.gz")
 
 # create directory to save files
 down_dir <- "data/GSE115978" # directory to save datasets 
@@ -192,7 +183,7 @@ We'll assume that the data is already processed and filtered based on the number
 
 ### Metadata
 
-_(2-5 min)_
+_(5 min)_
 
 <br>
 
@@ -240,7 +231,7 @@ Now that we've an understanding about the experimental design and meta data fiel
 
 ### QC: viz
 
-_(5-10 min)_
+_(5 min)_
 
 <br>
 
@@ -290,7 +281,7 @@ plot_dimred_bygroup <- function(seu, batches) {
 qc_dr <- plot_dimred_bygroup(seu, c("samples", "cell.types", "treatment.group", "Cohort"))
 
 # Save
-dirs2save <- paste("../results/GSE115978", c("plots", "tables", "objects"), sep="/")
+dirs2save <- paste("results/GSE115978", c("plots", "tables", "objects"), sep="/")
 for (d in dirs2save) if (!dir.exists(d)) dir.create(d, recursive=TRUE)
 pdf(paste(dirs2save[1], "qc_meta_vars_umap.pdf", sep="/"), width=20, height=20)
 cowplot::plot_grid(plotlist=qc_dr, ncol=2)
@@ -312,6 +303,10 @@ cowplot::plot_grid(plotlist=qc_dr, ncol=2)
 The data projected above into the low-dimensional space, i.e., UMAP, shows a great overlap/mixing between the categorical variables explored (i.e., `samples`, `treatment.group`, `Cohort`) across the two first axes meaning that the data is not being project based on potential technical noise (or covariates) but rather by true biological variability, i.e., cell type (at least across the first two axes, i.e., UMAP_1 and UMAP_2). This does not mean that these variables are not 'distorting' the cell types, but if they're there seems not be enough to be detected across these two axes. Therefore the choice between applying or not integration in this case can be left to the researcher, in the sense that by integrating we might be removing true biological variability and by not, we might incorporating some noise. Keep in mind that both options seem to be valid or at least debatable in this case. Since if a covariate effect exist in this case it seems to be weak, we'll not apply any integration (also because it is more convenient to use `ILoReg` below).  
 
 </p></details>
+
+<br>
+
+<br>
 
 Now it is time to perform **clustering**. For this end we'll apply two different methods: 
 
@@ -347,7 +342,7 @@ Then we'll compare both clustering results and discuss the similarities and diff
 
 ### Seurat
 
-_(10-15 min)_
+_(10 min)_
 
 <br>
 
@@ -386,6 +381,8 @@ cowplot::plot_grid(plotlist=clts_seurat, ncol=3)
 
 <br>
 
+<br>
+
 *Question*: **Does the clustering change a lot across the resolution values applied?** *(3 min)*
 
 <details><summary>*Answer*</summary><p> 
@@ -398,9 +395,15 @@ The clustering results are relatively similar to each other with increasing valu
 
 <br>
 
+---
+
+<br>
+
+<br>
+
 ### ILoReg
 
-_(30-40 min)_
+_(70 min)_
 
 <br>
 
@@ -414,6 +417,12 @@ It can be found at:
 
 <br>
 
+<details><summary>*Read more!*</summary><p> 
+
+The clustering results are relatively similar to each other with increasing values of resolution suggesting that the clusters are relatively stable and robust. 
+
+<br>
+
 `ILoReg` aims to find fine-grained clusters from scRNA-seq data through a novel machine learning algorithm designated **iterative clustering projection** (ICP). ICP relies mainly on two consecutive steps run _L_ times (where _L_ is 200 by default): 
 
    1. _Logistic Regression_ with L1 regularization (aka LASSO) to predict clusters
@@ -424,10 +433,14 @@ It can be found at:
 
 **Step 1** does not actually aim to predict clusters but instead use the ability of LASSO to learn from the data to find important features and translate that into a probability matrix, _n x k_, with the likelihood of each cell _n_ belong to each one of the _k_ clusters (where _k_ is 15 by default). In order to predict clusters, **step 1** starts by using a balanced random initial clustering (*S*) as training data set, where *S* is a gene expression matrix with *m x n* (*m* genes and *n* cells), with *m* cells being partitioned into *k* clusters (by default 15). The gene expression table provided to `ILoReg` should be already normalized. The first prediction results into a **projected clustering (S')** with predicted *n* cells distributed across *k* clusters. Then, **step 2** takes place by comparing the *ARI* score between _S_ and _S'_ clusterings. If _ARI(S')_ > _ARI(S)_, it uses the new clustering *S'* as the training data set to perform the next prediction, *i.e.*, ICP run, otherwise it uses _S_. Therefore, **step 2** works as a measure to direct predictions towards more stable clusters and improve the ability of LASSO to learn from the data with that purpose in mind. Please see the figure below for a more intuitive interpretation.  
 
-![ILoReg](figs/iloreg_algorithm.png)
+![Figure from Smolander et al., 2021.](`r normalizePath(".")`/reports/figs/iloreg_algorithm.png)
 
 
 After running ICP _L_ times, the result is _L_ probability matrices, each one with _n x k_ dimension, where each entry represents the probability of a _n_ cell belong to each one of the _k_ clusters. This result is combined in a **joint probability matrix** used to feed a **Principal Component Analysis** (PCA). The PCA analysis finds a **consensus matrix** of *p* PCs for *n* cells which is then used to **hierarchical clustering** the *n* cells into a number of selected and expected clusters using the _Ward_'s method. The **Silhouette** method can be applied to inform the decision regarding the number of clusters to select.   
+
+</p></details>
+
+<br>
 
 `ILoReg` was designed to use all the expressed genes/features of log-normalized data. `ILoReg` is a `bioconductor` package and thus it relies on the `SingleCellExperiment` class object. An object similar to the `Seurat` object, but with a different organization, but with the same aim - gather together different layers of information. 
 
@@ -435,7 +448,7 @@ First we start by converting the `Seurat` object to `SingleCellExperiment` with 
 
    + `k=15`: number of clusters to split the data by
 
-   + `d=0.3`: proportion of cells down- or oversampled from each cluster to use for the training data set during ICP. A value ranging 0-1. Recommended between 0.2-0.3.
+   + `d=0.3`: proportion of cells down- or over-sampled from each cluster to use for the training data set during ICP. A value ranging 0-1. Recommended between 0.2-0.3.
 
    + `L=50`: number of ICP runs. Recommended `200`. Here we'll run `50` because this is a relatively small data set and due to time constraints. 
 
@@ -445,11 +458,11 @@ First we start by converting the `Seurat` object to `SingleCellExperiment` with 
 
    + `reg.type="L1"`: regression type. Use `"L1"` for LASSO regression. Use `"L2"` for ridge regression. 
 
-   + `threads=10`: number of threads to use to paralelize the computation.
+   + `threads=4`: number of threads to use to paralelize the computation.
 
 <br>
 
-Then the joint probabilities are use to build a PCA (`ILoReg::RunPCA()`) which is then used for UMAP (`ILoReg::RunUMAP()`) and hierarchial clustering with `HierarchicalClustering()`. Finally, we can specify the number of clusters that we want to select: `SelectKClusters()` (in our case lets select `15`). 
+Then the joint probabilities are use to build a PCA (`ILoReg::RunPCA()`) which is then used for UMAP (`ILoReg::RunUMAP()`) and hierarchical clustering with `HierarchicalClustering()`. Finally, we can specify the number of clusters that we want to select: `SelectKClusters()` (in our case lets select `15`). 
 
 Run the `R` chunk code below. 
 
@@ -457,7 +470,7 @@ Run the `R` chunk code below.
 
 ## Clustering: ILoReg 
 iloreg_params <- list(icp_k=15, icp_d=0.3, icp_r=5, 
-		      icp_c=0.3, icp_l=50, icp_threads=10,
+		      icp_c=0.3, icp_l=50, icp_threads=4,
 		      icp_iter=50, sel_clts=15
 )
 #seu <- FindVariableFeatures(seu, selection.method="vst", nfeatures=5000)
@@ -508,6 +521,8 @@ clts_iloreg
 
 <br>
 
+<br>
+
 *Question*: **which is the greatest difference between the projections of the Seurat and ILoReg clustering results?** *(1 min)*
 
 <details><summary>*Answer*</summary><p> 
@@ -515,6 +530,16 @@ clts_iloreg
 `ILoReg` is able to find slight differences between more similar cell clusters. The proportion of cells by cluster is more even in `ILoReg` than `Seurat`. 
 
 </p></details>
+
+<br>
+
+<br>
+
+### Comparison
+
+_(10 min)_
+
+<br>
 
 <br>
 
@@ -565,6 +590,8 @@ snk.plot
 
 <br>
 
+<br>
+
 *Question*: **Which were the more robust/stable clusters across Seurat/ILoReg clustering results?** *(1 min)*
 
 <details><summary>*Answer*</summary><p> 
@@ -572,6 +599,8 @@ snk.plot
 Clusters related with B cell (seurat cluster 2 --> ILoReg cluster 12) was the most robust/stable cluster across both methods. Then, macrophages, endothelial and CAF related clusters show some degree of stability across methods.  
 
 </p></details>
+
+<br>
 
 <br>
 
@@ -589,7 +618,7 @@ Clusters related with B cell (seurat cluster 2 --> ILoReg cluster 12) was the mo
 
 ## Cell annotation
 
-_(20-30 min)_
+_(7 min)_
 
 <br>
 
@@ -630,13 +659,13 @@ import celltypist
 import scanpy as sc
 
 # Params
-input_h5ad_file="../results/GSE115978/objects/seu2celltypist.h5ad"
-model="../data/models/Immune_All_Low.pkl"
-output_h5ad_file="../results/GSE115978/objects/seu.annot.h5ad"
+input_h5ad_file="results/GSE115978/objects/seu2celltypist.h5ad"
+model="data/models/Immune_All_Low.pkl"
+output_h5ad_file="results/GSE115978/objects/seu.annot.h5ad"
 
 if not os.path.isdir(os.path.dirname(model)): os.makedirs(os.path.dirname(model))
 # Define models path (otherwise it attemps: '~/.celltypist/data/models')
-celltypist.models.models_path=os.path.join(os.path.dirname(os.getcwd()), "data/models") # ..
+celltypist.models.models_path=os.path.join(os.getcwd(), "data/models") # ..
 
 # Download CellTypist models 
 celltypist.models.download_models(force_update=True)
@@ -698,6 +727,8 @@ cowplot::plot_grid(DimPlot(seu),
 
 <br>
 
+<br>
+
 >TASK 2: Discuss within your group the `CellTypist` annotations and if these annotations help you or not to achieve any conclusion about the reliability of the sub-clusters obtained either with `Seurat` or `ILoReg`. 
 
 <br>
@@ -712,7 +743,7 @@ cowplot::plot_grid(DimPlot(seu),
 
 ## Exhausted T cells 
 
-_(15-20 min)_
+_(15 min)_
 
 <br>
 
@@ -740,6 +771,8 @@ cowplot::plot_grid(ilo.mrks, seu.mrks, ncol=1)
 dev.off()
 
 ```
+
+<br>
 
 <br>
 
